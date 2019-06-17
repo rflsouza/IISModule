@@ -10,6 +10,7 @@
 #include <queue>
 #include <memory>
 #include <atomic>
+
 #include <windows.h>
 #include <tchar.h>
 
@@ -31,7 +32,11 @@ private:
 	void checkFile();
 
 public:
-	CLog(std::string pathFile);
+	/* Create Log
+	pathFile = path of file, sample: C:\\applogs\\proxy-webhook\\
+	prefixFile = prefix of File name, sample: proxy
+	*/
+	CLog(std::string pathFile, std::string prefixFile);
 	~CLog();
 	void write(const char*, bool forceWrite = false);
 	void write(const std::string&, bool forceWrite = false);

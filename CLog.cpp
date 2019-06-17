@@ -1,9 +1,19 @@
 #include "CLog.h"
+#include <experimental/filesystem>
 
-CLog::CLog(std::string pathFile) : flushCount(0)
+namespace fs = std::experimental::filesystem;
+
+CLog::CLog(std::string pathFile, std::string prefixFile) : flushCount(0)
 {
 	m_pathFile = pathFile;
+	m_pathFile += "Logs\\";
+
+	if (!fs::is_directory(m_pathFile) || !fs::exists(m_pathFile)) {
+		fs::create_directory(m_pathFile);
+	}
 	
+	m_pathFile += prefixFile;
+
 	createFile();
 
 	if (ofs->is_open()) {

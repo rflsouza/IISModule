@@ -37,7 +37,7 @@ BOOL WINAPI DllMain(
 		
 		gAppPath = "C:\\applogs\\proxy-webhook\\";
 
-		p_log = new CLog(gAppPath + "iis-module");
+		p_log = new CLog(gAppPath, "iis-module");
 		p_log->write("DLL_PROCESS_ATTACH");			
 		strLog << "Path: " << gAppPath;
 		p_log->write(&strLog, true);
