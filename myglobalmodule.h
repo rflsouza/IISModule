@@ -60,7 +60,7 @@ public:
 		ULONGLONG bytesTotal = 0;
 		BYTE *	pIoBuffer = NULL;
 		HANDLE	hIoEvent = INVALID_HANDLE_VALUE;
-		HRESULT hr = S_OK;
+		HRESULT hr = S_OK; 
 
 		pIoBuffer = (BYTE *)VirtualAlloc(NULL,
 			1,
