@@ -26,5 +26,5 @@ extern CLog *p_log;
 extern std::atomic<unsigned long> g_requests;
 extern std::string gAppPath;
 
-#endif
+#endif //__PRECOMP_H__
 

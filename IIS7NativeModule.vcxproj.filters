@@ -59,5 +59,8 @@
     <ClInclude Include="iishelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="libwshandshake.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

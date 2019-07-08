@@ -1,5 +1,6 @@
 #ifndef __IIS_HELPERS_H__
 #define __IIS_HELPERS_H__
+#pragma once
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -13,7 +14,20 @@
 
 
 #include <string>
-#pragma once
+#include <map>
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds
+
+enum EHTTPSamples
+{
+	WEB_SOCKET = 0,
+	WEB_REQUEST_GET = 1,
+	WEB_REQUEST_POST_DATA = 2,
+	WEB_REQUEST_POST_FILE = 3,
+	WEB_REQUEST_ASYNC_THREAD = 4
+
+} EHTTPSamples;
+
 class IISHelpers
 {
 public:

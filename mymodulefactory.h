@@ -42,14 +42,14 @@ public:
         }
 
         return hr;
-    }
+	};
 
     virtual 
     void
     Terminate()
     {
         delete this;
-    }
+	};
 };
 
 #endif

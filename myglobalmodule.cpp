@@ -195,51 +195,51 @@ GLOBAL_NOTIFICATION_STATUS MyGlobalModule::OnGlobalPreBeginRequest(IN IPreBeginR
 
 	//////////////////////////////
 
-	if (pHttpResponse != NULL)
-	{
-		HTTP_DATA_CHUNK dataChunk1;
-		HTTP_DATA_CHUNK dataChunk2;
+	//if (pHttpResponse != NULL)
+	//{
+	//	HTTP_DATA_CHUNK dataChunk1;
+	//	HTTP_DATA_CHUNK dataChunk2;
 
-		pHttpResponse->Clear();
+	//	pHttpResponse->Clear();
 
-		int BUFFERLENGTH = 256;
+	//	int BUFFERLENGTH = 256;
 
-		//char szBuffer[BUFFERLENGTH];
-		//char szBuffer2[BUFFERLENGTH];   
+	//	//char szBuffer[BUFFERLENGTH];
+	//	//char szBuffer2[BUFFERLENGTH];   
 
-		char* szBuffer = (char *)pHttpContext->AllocateRequestMemory(BUFFERLENGTH);
-		char* szBuffer2 = (char *)pHttpContext->AllocateRequestMemory(BUFFERLENGTH);
+	//	char* szBuffer = (char *)pHttpContext->AllocateRequestMemory(BUFFERLENGTH);
+	//	char* szBuffer2 = (char *)pHttpContext->AllocateRequestMemory(BUFFERLENGTH);
 
-		dataChunk1.DataChunkType = HttpDataChunkFromMemory;
-		strcpy_s(szBuffer, 255, "Hello world!!!\r\n");
+	//	dataChunk1.DataChunkType = HttpDataChunkFromMemory;
+	//	strcpy_s(szBuffer, 255, "Hello world!!!\r\n");
 
-		dataChunk1.FromMemory.pBuffer = (PVOID)szBuffer;
-		dataChunk1.FromMemory.BufferLength = (ULONG)strlen(szBuffer);
-		hr = pHttpResponse->WriteEntityChunkByReference(&dataChunk1, -1);
+	//	dataChunk1.FromMemory.pBuffer = (PVOID)szBuffer;
+	//	dataChunk1.FromMemory.BufferLength = (ULONG)strlen(szBuffer);
+	//	hr = pHttpResponse->WriteEntityChunkByReference(&dataChunk1, -1);
 
-		if (FAILED(hr))
-		{
-			pProvider->SetErrorStatus(hr);
-			return GL_NOTIFICATION_HANDLED;
-		}
+	//	if (FAILED(hr))
+	//	{
+	//		pProvider->SetErrorStatus(hr);
+	//		return GL_NOTIFICATION_HANDLED;
+	//	}
 
-		dataChunk2.DataChunkType = HttpDataChunkFromMemory;
-		wchar_t wstrTest1[] = L"rafael Souza";
-		int encodedStrLen = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR)wstrTest1, -1, szBuffer2, BUFFERLENGTH, NULL, NULL);
+	//	dataChunk2.DataChunkType = HttpDataChunkFromMemory;
+	//	wchar_t wstrTest1[] = L"rafael Souza";
+	//	int encodedStrLen = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR)wstrTest1, -1, szBuffer2, BUFFERLENGTH, NULL, NULL);
 
-		dataChunk2.FromMemory.pBuffer = (PVOID)szBuffer2;
-		dataChunk2.FromMemory.BufferLength = encodedStrLen;
-		hr = pHttpResponse->WriteEntityChunkByReference(&dataChunk2, -1);
+	//	dataChunk2.FromMemory.pBuffer = (PVOID)szBuffer2;
+	//	dataChunk2.FromMemory.BufferLength = encodedStrLen;
+	//	hr = pHttpResponse->WriteEntityChunkByReference(&dataChunk2, -1);
 
-		if (FAILED(hr))
-		{
-			pProvider->SetErrorStatus(hr);
-			return GL_NOTIFICATION_HANDLED;
-		}
-		// Comentado para nao retornar daqui.
-		//pHttpResponse->SetHeader("Content-Type", "text/json", 9, true);
-		//return GL_NOTIFICATION_HANDLED;
-	}
+	//	if (FAILED(hr))
+	//	{
+	//		pProvider->SetErrorStatus(hr);
+	//		return GL_NOTIFICATION_HANDLED;
+	//	}
+	//	// Comentado para nao retornar daqui.
+	//	//pHttpResponse->SetHeader("Content-Type", "text/json", 9, true);
+	//	//return GL_NOTIFICATION_HANDLED;
+	//}
 	return GL_NOTIFICATION_CONTINUE;
 }
 
