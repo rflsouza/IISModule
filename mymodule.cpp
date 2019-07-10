@@ -1,6 +1,5 @@
 #include "precomp.h"
-#include "iiswebsocket.h"
-#include "libwshandshake.hpp"
+#include "mywebsocket.h"
 
 CMyHttpModule::CMyHttpModule()
 {
@@ -90,6 +89,7 @@ CMyHttpModule::OnBeginRequest(
 	IN IHttpContext * pHttpContext, 
 	IN OUT IHttpEventProvider * pProvider
 )
+try 
 {
 	//UNREFERENCED_PARAMETER(pHttpContext);
 	//UNREFERENCED_PARAMETER(pProvider);
@@ -111,12 +111,11 @@ CMyHttpModule::OnBeginRequest(
 	urlmap["/post_file"] = EHTTPSamples::WEB_REQUEST_POST_FILE;
 	urlmap["/post_async"] = EHTTPSamples::WEB_REQUEST_ASYNC_THREAD;
 
-	HTTP_REQUEST * httpRequest = pHttpRequest->GetRawHttpRequest();
-	
+	HTTP_REQUEST * httpRequest = pHttpRequest->GetRawHttpRequest();		
 	std::string v_forwardURL = httpRequest->pRawUrl;	
 	//DWORD v_pcchValueLength;
 	//IISHelpers::GetVariable(pHttpContext, "HTTP_URL", &v_forwardURL, &v_pcchValueLength, true);
-
+		
 	strLog << __FUNCTION__ << "Request: "<< v_forwardURL << std::endl;
 	p_log->write(&strLog);
 
@@ -141,10 +140,11 @@ CMyHttpModule::OnBeginRequest(
 
 				// DebugBreak();
 
-
+#pragma region WEBSOCKET Handshake
 				PCSTR rawBuffer = NULL;
 				DWORD rawLength = 0;
 				IISHelpers::GetVariable(pHttpContext, "HEADER_Sec-WebSocket-Key", &rawBuffer, &rawLength, true);
+				//auto hhc = pHttpRequest->GetHeader(HTTP_HEADER_ID::HttpHeaderUpgrade);
 
 				char output[29] = {};
 				WebSocketHandshake::generate(rawBuffer, output);
@@ -158,6 +158,8 @@ CMyHttpModule::OnBeginRequest(
 				pHttpResponse->SetStatus(101, "Web Socket Protocol Handshake", 0, hr);
 				if (FAILED(hr))
 				{
+					strLog << __FUNCTION__ << "Error to SetStatus 101 in Upgrade" << hr;
+					p_log->write(&strLog);
 					goto Finished;
 				}
 
@@ -166,68 +168,81 @@ CMyHttpModule::OnBeginRequest(
 				// Buffer to store if asyncronous completion is pending.
 				BOOL fCompletionExpected = false;
 				hr = pHttpResponse->Flush(false, true, &cbSent, &fCompletionExpected);
-
+#pragma endregion
 
 				IHttpContext3* pHttpContext3;
 				hr = HttpGetExtendedInterface(g_pHttpServer, pHttpContext, &pHttpContext3);
 				if (FAILED(hr))
 				{
+					strLog << __FUNCTION__ << "Error to HttpGetExtendedInterface" << hr;
+					p_log->write(&strLog);
 					goto Finished;
 				}
 
 				//
 				// Get Pointer to IWebSocketContext
 				//
-				IWebSocketContext * _pWebSocketContext;
-				_pWebSocketContext = (IWebSocketContext *)pHttpContext3->GetNamedContextContainer()->GetNamedContext(L"websockets");
-				if (_pWebSocketContext == NULL)
+				IWebSocketContext * pWebSocketContext;
+				pWebSocketContext = (IWebSocketContext *)pHttpContext3->GetNamedContextContainer()->GetNamedContext(IIS_WEBSOCKET);
+				if (pWebSocketContext == NULL)
 				{
-
 					hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
+					strLog << __FUNCTION__ << "Error to GetContext websockets" << hr;
+					p_log->write(&strLog);
+
 					goto Finished;
 				}
 
 				USHORT statusSocket = 0;
 				LPCWSTR statusBuffer = NULL;
 				USHORT statusLength = 0;
-				while (true)
-				{
-					// https://www.iana.org/assignments/websocket/websocket.xml#close-code-number-rules
-					//https://tools.ietf.org/html/rfc6455
-					hr = _pWebSocketContext->GetCloseStatus(&statusSocket, &statusBuffer, &statusLength);
-					if (hr == NULL || statusSocket == -1) {
 
-						break;
-					}
 
-					void * readBuffer = pHttpContext->AllocateRequestMemory(1024);
-					DWORD readLength = 1024;
-					//WebSocket websocket(g_pHttpServer, pHttpContext3);
-					BOOL bUTF8Encoded = FALSE;
-					BOOL bFinalFragment = TRUE;
-					BOOL bConnectionClose = FALSE;
-					BOOL success = FALSE;
-					hr = _pWebSocketContext->ReadFragment(readBuffer, &readLength, TRUE, &bUTF8Encoded, &bFinalFragment, &bConnectionClose, &WEBSOCKET_COMPLETION, readBuffer, &success);
-					if (FAILED(hr)) {
+				MyWebSocket websocket(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
+				websocket.Reading();
 
-					}
-					if (success == TRUE)
-					{
-						strLog << __FUNCTION__ << "ready socket: lenght:" << readLength << " text:" << (char *)readBuffer;
-						p_log->write(&strLog);
-					}
+				//ULONG count = 1;
+				//while (true)
+				//{
+				//	// https://www.iana.org/assignments/websocket/websocket.xml#close-code-number-rules
+				//	//https://tools.ietf.org/html/rfc6455
+				//	hr = pWebSocketContext->GetCloseStatus(&statusSocket, &statusBuffer, &statusLength);
+				//	if (hr == NULL || statusSocket == -1) 
+				//	{
+				//		strLog << __FUNCTION__ << "websockets closed, Status:" << statusBuffer << " ret:" << hr << hr;
+				//		p_log->write(&strLog);
 
-					void * writeBuffer = pHttpContext->AllocateRequestMemory(1024);
-					strcpy((char*)writeBuffer, "banana");
-					DWORD writeLength = strlen((char*)writeBuffer);
+				//		break;
+				//	}
 
-					hr = _pWebSocketContext->WriteFragment(writeBuffer, &writeLength, TRUE, FALSE, TRUE, &WEBSOCKET_COMPLETION, NULL, NULL);
-					if (FAILED(hr)) {
+				//	void * readBuffer = pHttpContext->AllocateRequestMemory(1024);
+				//	DWORD readLength = 1024;					
+				//	BOOL bUTF8Encoded = FALSE;
+				//	BOOL bFinalFragment = TRUE;
+				//	BOOL bConnectionClose = FALSE;
+				//	BOOL success = FALSE;
+				//	hr = pWebSocketContext->ReadFragment(readBuffer, &readLength, TRUE, &bUTF8Encoded, &bFinalFragment, &bConnectionClose, &WEBSOCKET_COMPLETION, readBuffer, &success);
+				//	if (FAILED(hr)) {
 
-					}
+				//	}
+				//	if (success == TRUE)
+				//	{
+				//		strLog << __FUNCTION__ << "ready socket: lenght:" << readLength << " text:" << (char *)readBuffer;
+				//		p_log->write(&strLog);
+				//	}
 
-					::Sleep(2000);
-				}
+				//	void * writeBuffer = pHttpContext->AllocateRequestMemory(1024);
+				//	std::string text("number " + std::to_string(count++));
+				//	strcpy((char*)writeBuffer, text.c_str());
+				//	DWORD writeLength = strlen((char*)writeBuffer);
+
+				//	hr = pWebSocketContext->WriteFragment(writeBuffer, &writeLength, TRUE, FALSE, TRUE, &WEBSOCKET_COMPLETION, NULL, NULL);
+				//	if (FAILED(hr)) {
+
+				//	}
+
+				//	::Sleep(2000);
+				//}
 
 				break;
 			}
@@ -300,13 +315,11 @@ CMyHttpModule::OnBeginRequest(
 			}
 		}
 	}
-	
-	
-
-
-	
-
-
+	else
+	{
+		goto Finished;
+	}
+		
 
 	//This will hold the HttpContext for the child request
 	IHttpApplication2 * pApplication = NULL;
@@ -383,6 +396,14 @@ Finished:
 			hr);
 		return RQ_NOTIFICATION_FINISH_REQUEST;
 	}
+
+	return RQ_NOTIFICATION_CONTINUE;
+}
+catch (std::exception &e) {
+	HRESULT hr = S_OK;
+	e.what();
+
+	pHttpContext->GetResponse()->SetStatus(500, "Server Error", 0, hr);
 
 	return RQ_NOTIFICATION_CONTINUE;
 };

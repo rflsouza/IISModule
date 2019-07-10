@@ -141,6 +141,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="mywebsocket.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="mymodule.def" />
@@ -156,6 +157,7 @@
     <ClInclude Include="mymodule.h" />
     <ClInclude Include="mymodulefactory.h" />
     <ClInclude Include="precomp.h" />
+    <ClInclude Include="mywebsocket.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
