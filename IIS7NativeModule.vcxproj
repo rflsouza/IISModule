@@ -145,6 +145,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="mymodule.def" />
+    <None Include="Page\websocket2.html" />
     <None Include="readme.htm">
       <DeploymentContent>true</DeploymentContent>
     </None>

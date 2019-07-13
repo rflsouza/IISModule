@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
+    <Filter Include="Source Files\Pages">
+      <UniqueIdentifier>{5b26e172-9f18-4ff0-9280-6d5a08081c01}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -42,6 +45,9 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="readme.htm" />
+    <None Include="Page\websocket2.html">
+      <Filter>Source Files\Pages</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mymodule.h">

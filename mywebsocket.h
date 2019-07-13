@@ -41,6 +41,9 @@ public:
 	void * readBuffer;
 	void * writeBuffer;
 
+
+	std::string data;
+
 	//Constructor
 	MyWebSocket() = delete;
 	MyWebSocket(CLog *log, IHttpServer *is, IHttpContext *ic, IWebSocketContext *wsc) : p_log(log), m_HttpServer(is), m_HttpContext(ic), m_WebSocketContext(wsc)

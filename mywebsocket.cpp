@@ -48,19 +48,20 @@ void MyWebSocket::Reading()
 
 		ZeroMemory(readBuffer, BUFFERLENGTH);
 		BOOL bUTF8Encoded = FALSE;
+		// true if this is the final data fragment; otherwise false. need read more data!!!!
 		BOOL bFinalFragment = TRUE;
 		BOOL bConnectionClose = FALSE;
-		// true if an asynchronous completion is pending for this call; otherwise, false.
+		// true if an asynchronous completion is pending for this call; otherwise, false. Running in this call!!!
 		BOOL bCompletionExpected = FALSE;
 
-		std::unique_lock<std::mutex> lck(mtx);
-		
+		std::unique_lock<std::mutex> lck(mtx);		
 		hr = m_WebSocketContext->ReadFragment(readBuffer, &BUFFERLENGTH, TRUE, &bUTF8Encoded, &bFinalFragment, &bConnectionClose, functorWebSocket::ReadAsyncCompletion, this, &bCompletionExpected);
-
 		lck.unlock();
 
 		if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
 			//normal event!
+			//strLog << __FUNCTION__ << "normal event! -> ERROR_IO_PENDING READ websocket[" << remote.port << "] Error hr:" << hr << " hr_win32:" << HRESULT_FROM_WIN32(hr);
+			//p_log->write(&strLog);
 			::Sleep(1000);
 		}
 		else if (FAILED(hr))
@@ -70,7 +71,7 @@ void MyWebSocket::Reading()
 		} 
 		else if (bCompletionExpected == FALSE)
 		{
-			// return Dada synchrono
+			// return Data synchrono. running now in this call.
 			strLog << __FUNCTION__ << " READ SYNC websocket[" << remote.port << "]"
 				<< " hr:" << hr
 				<< " hr_win32:" << HRESULT_FROM_WIN32(hr)
@@ -82,18 +83,46 @@ void MyWebSocket::Reading()
 				<< " text:" << (char *)readBuffer;
 			p_log->write(&strLog);
 
-			// WRITE ECHO
-			std::string echo("echo " + std::string((char *)readBuffer));
-			HRESULT hr = Write(echo);
-			if (FAILED(hr)) {
-				strLog << "\n" << __FUNCTION__ << " Error to Write:" << echo;
+			if (bFinalFragment == false) {
+				//need read more data!
+				//data.resize(BUFFERLENGTH);				
+				//data.insert(data.end(),(const char *)readBuffer, (size_t)BUFFERLENGTH);
+				data.append((char *)readBuffer);
 			}
-			p_log->write(&strLog);
-			// FIM ECHO
+			else
+			{
+				//data.resize(BUFFERLENGTH);
+				//data.insert(data.end(), (const char *)readBuffer, (const size_t)BUFFERLENGTH);
+				data.append((char *)readBuffer);
+
+				// return Data synchrono. running now in this call.
+				strLog << __FUNCTION__ << " READ SYNC websocket[" << remote.port << "]"
+					<< " data.length:" << data.length()
+					<< " data.capacity:" << data.capacity()
+					<< " data:" << data.data();
+				p_log->write(&strLog);
+
+				// WRITE ECHO
+				std::string echo("echo " + std::string(data.data()));
+				HRESULT hr = Write(echo);
+				if (FAILED(hr)) {
+					strLog << "\n" << __FUNCTION__ << " Error to Write:" << echo;
+					p_log->write(&strLog);
+				}
+				// FIM ECHO
+
+				data.clear();
+				strLog << __FUNCTION__ << " READ SYNC websocket[" << remote.port << "]"
+					<< " after clear" 
+					<< " data.length:" << data.length()
+					<< " data.capacity:" << data.capacity()
+					<< " data:" << data.data();
+			}
 		}
 		else
 		{
-			strLog << __FUNCTION__ << " READ websocket[" << remote.port << "]"
+			// return Data asynchrono. running in ReadAsyncCompletion
+			strLog << __FUNCTION__ << " READ ASYNC websocket[" << remote.port << "]"
 				<< " hr:" << hr
 				<< " hr_win32:" << HRESULT_FROM_WIN32(hr)
 				<< " fUTF8Encoded:" << bUTF8Encoded
@@ -101,7 +130,8 @@ void MyWebSocket::Reading()
 				<< " fClose:" << bConnectionClose
 				<< " bCompletionExpected:" << bCompletionExpected
 				<< " strLength:" << strnlen((char *)readBuffer, BUFFERLENGTH)
-				<< " text:" << (char *)readBuffer;
+				<< " text:" << (char *)readBuffer
+				<< "--------------------------------------------------------";
 			p_log->write(&strLog);
 		}
 
@@ -148,7 +178,7 @@ void WINAPI functorWebSocket::ReadAsyncCompletion(HRESULT hrError, VOID * pvComp
 	DWORD readLength = 1024;
 	OutputDebugString((char *)pws->readBuffer);
 
-	strLog << __FUNCTION__ << " READY websocket[" << pws->remote.port << "]"
+	strLog << __FUNCTION__ << " READ ASYNC websocket[" << pws->remote.port << "]"
 		<< " cbIO:" << cbIO
 		<< " fUTF8Encoded:" << fUTF8Encoded
 		<< " fFinalFragment:" << fFinalFragment
@@ -158,47 +188,76 @@ void WINAPI functorWebSocket::ReadAsyncCompletion(HRESULT hrError, VOID * pvComp
 		<< " text:" << (char *)pws->readBuffer;
 	pws->p_log->write(&strLog);
 
-	HRESULT hrac;
-	void * readBufferMore = pws->m_HttpContext->AllocateRequestMemory(readLength);
-	while (!fFinalFragment) 
+	if (fFinalFragment == false) {
+		//need read more data!
+		//pws->data.resize(pws->data.size() + cbIO);
+		//pws->data.insert(pws->data.end(), (const char *)pws->readBuffer, (const size_t)cbIO);
+		pws->data.append((char *)pws->readBuffer);
+	}
+	else
 	{
-		BOOL tCompletionExpected = FALSE;
-		pws->m_WebSocketContext->CancelOutstandingIO();
+		//pws->data.resize(pws->data.size() + cbIO);
+		//pws->data.insert(pws->data.end(), (const char *)pws->readBuffer, (const size_t)cbIO);
+		pws->data.append((char *)pws->readBuffer);
 
-		//read again
-		cbIO = 10;
+		// return Data synchrono. running now in this call.
+		strLog << __FUNCTION__ << " READ ASYNC websocket[" << pws->remote.port << "]"
+			<< " data.length:" << pws->data.length()
+			<< " data.capacity:" << pws->data.capacity()
+			<< " data:" << pws->data.data();
+		p_log->write(&strLog);
 
-		hrac = pws->m_WebSocketContext->ReadFragment(readBufferMore, &cbIO, TRUE, &fUTF8Encoded, &fFinalFragment, &fClose, functorWebSocket::fWebSocketNULL, NULL, &tCompletionExpected);
-
-		//has read
-		if (cbIO > 0) {
-			strLog << __FUNCTION__ << " READY while websocket[" << pws->remote.port << "]"
-				<< " cbIO:" << cbIO
-				<< " fUTF8Encoded:" << fUTF8Encoded
-				<< " fFinalFragment:" << fFinalFragment
-				<< " fClose:" << fClose
-				<< " Length:" << readBufferMore
-				<< " strLength:" << strnlen((char *)readBufferMore, readLength)
-				<< " text:" << (char *)readBufferMore;
+	
+		// WRITE ECHO
+		lck.unlock();
+		std::string echo("echo " + std::string(pws->data.data()));
+		HRESULT hr = pws->Write(echo);
+		if (FAILED(hr)) {
+			strLog << "\n" << __FUNCTION__ << " Error to Write:" << echo;
 			pws->p_log->write(&strLog);
 		}
-		if (FAILED(hrac)) {
-			strLog << "\n" << __FUNCTION__ << " Error to read while:" << hrac;
-			p_log->write(&strLog);
-			break;
-		}
+		// FIM ECHO
+
+		pws->data.clear();
+		strLog << __FUNCTION__ << " READ ASYNC websocket[" << pws->remote.port << "]"
+			<< " after clear"
+			<< " data.length:" << pws->data.length()
+			<< " data.capacity:" << pws->data.capacity()
+			<< " data:" << pws->data.data();
 	}
 
-	lck.unlock();
+	//HRESULT hrac;
+	//void * readBufferMore = pws->m_HttpContext->AllocateRequestMemory(readLength);
+	//while (!fFinalFragment) 
+	//{
+	//	BOOL tCompletionExpected = FALSE;
+	//	pws->m_WebSocketContext->CancelOutstandingIO();
 
-	// WRITE ECHO
-	std::string echo("echo " + std::string((char *)pws->readBuffer));
-	HRESULT hr = pws->Write(echo);
-	if (FAILED(hr)) {
-		strLog << "\n" << __FUNCTION__ << " Error to Write:" << echo;
-	}
-	pws->p_log->write(&strLog);
-	// FIM ECHO
+	//	//read again
+	//	cbIO = 10;
+
+	//	hrac = pws->m_WebSocketContext->ReadFragment(readBufferMore, &cbIO, TRUE, &fUTF8Encoded, &fFinalFragment, &fClose, functorWebSocket::fWebSocketNULL, NULL, &tCompletionExpected);
+
+	//	//has read
+	//	if (cbIO > 0) {
+	//		strLog << __FUNCTION__ << " READY while websocket[" << pws->remote.port << "]"
+	//			<< " cbIO:" << cbIO
+	//			<< " fUTF8Encoded:" << fUTF8Encoded
+	//			<< " fFinalFragment:" << fFinalFragment
+	//			<< " fClose:" << fClose
+	//			<< " Length:" << readBufferMore
+	//			<< " strLength:" << strnlen((char *)readBufferMore, readLength)
+	//			<< " text:" << (char *)readBufferMore;
+	//		pws->p_log->write(&strLog);
+	//	}
+	//	if (FAILED(hrac)) {
+	//		strLog << "\n" << __FUNCTION__ << " Error to read while:" << hrac;
+	//		p_log->write(&strLog);
+	//		break;
+	//	}
+	//}
+
+
 };
 
 void WINAPI functorWebSocket::WritAsyncCompletion(HRESULT hrError, PVOID pvCompletionContext, DWORD cbIO, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose)

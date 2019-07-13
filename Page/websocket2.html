@@ -1,317 +1,316 @@
- <!DOCTYPE html>
-  <meta charset="utf-8" />
-  <title>WebSocket Test</title>
-  <script language="javascript" type="text/javascript">
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <title>WebSocket Test</title>
+    <script language="javascript" type="text/javascript">
 
-  var protocol="xwc";
-  var Uri = "ws://xwcteste.xgen.com.br/iis-module/websocket";
-  var output;
+        var protocol = "xwc";
+        var Uri = "ws://xwcteste.xgen.com.br/iis-module/websocket";
+        var output;
 
- //  var secureCb;
-//  var secureCbLabel;
-  var wsUri;
-  var consoleLog;
-  var connectBut;
-  var disconnectBut;
-  var sendMessage;
-  var sendBut;
-  var loopRunning = false;
-  var sendButLoop;
-  var clearLogBut;
+        //  var secureCb;
+        //  var secureCbLabel;
+        var wsUri;
+        var consoleLog;
+        var connectBut;
+        var disconnectBut;
+        var sendMessage;
+        var sendBut;
+        var loopRunning = false;
+        var sendButLoop;
+        var clearLogBut;
 
-  function echoHandlePageLoad()
-  {
+        function echoHandlePageLoad() {
 
-    wsUri = document.getElementById('wsUri');
-	wsUri.value = Uri;
+            wsUri = document.getElementById('wsUri');
+            wsUri.value = Uri;
 
-    // Connect if the user presses enter in the connect field.
-    wsUri.onkeypress = function(e){
-      if (!e) {
-        e = window.event;
-      }
-      var keyCode = e.keyCode || e.which;
-      if (keyCode == '13'){
-        doConnect();
-        return false;
-      }
-    }
+            // Connect if the user presses enter in the connect field.
+            wsUri.onkeypress = function (e) {
+                if (!e) {
+                    e = window.event;
+                }
+                var keyCode = e.keyCode || e.which;
+                if (keyCode == '13') {
+                    doConnect();
+                    return false;
+                }
+            }
 
-    connectBut = document.getElementById('connect');
-    connectBut.onclick = doConnect;
+            connectBut = document.getElementById('connect');
+            connectBut.onclick = doConnect;
 
-    disconnectBut = document.getElementById('disconnect');
-    disconnectBut.onclick = doDisconnect;
+            disconnectBut = document.getElementById('disconnect');
+            disconnectBut.onclick = doDisconnect;
 
-    sendMessage = document.getElementById('sendMessage');
+            sendMessage = document.getElementById('sendMessage');
 
-    // Send message if the user presses enter in the the sendMessage field.
-    sendMessage.onkeypress = function(e){
-      if (!e) {
-        e = window.event;
-      }
-      var keyCode = e.keyCode || e.which;
-      if (keyCode == '13'){
-        doSend();
-        return false;
-      }
-    }
+            // Send message if the user presses enter in the the sendMessage field.
+            sendMessage.onkeypress = function (e) {
+                if (!e) {
+                    e = window.event;
+                }
+                var keyCode = e.keyCode || e.which;
+                if (keyCode == '13') {
+                    doSend();
+                    return false;
+                }
+            }
 
-    sendBut = document.getElementById('send');
-    sendBut.onclick = doSend;
-	
-	sendButLoop = document.getElementById('sendLoop');
-    sendButLoop.onclick = doSendLoop;	
+            sendBut = document.getElementById('send');
+            sendBut.onclick = doSend;
 
-    consoleLog = document.getElementById('consoleLog');
+            sendButLoop = document.getElementById('sendLoop');
+            sendButLoop.onclick = doSendLoop;
 
-    clearLogBut = document.getElementById('clearLogBut');
-    clearLogBut.onclick = clearLog;
+            consoleLog = document.getElementById('consoleLog');
 
-    setGuiConnected(false);
+            clearLogBut = document.getElementById('clearLogBut');
+            clearLogBut.onclick = clearLog;
 
-    document.getElementById('disconnect').onclick = doDisconnect;
-    document.getElementById('send').onclick = doSend;
+            setGuiConnected(false);
 
-  }
+            document.getElementById('disconnect').onclick = doDisconnect;
+            document.getElementById('send').onclick = doSend;
 
-
-  function getParameterByName(name, url) {
-    if (!url) url = window.location.href;
-    name = name.replace(/[\[\]]/g, '\\$&');
-    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)', 'i'),
-    results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return '';
-    return decodeURIComponent(results[2].replace(/\+/g, ' '));
-  }
-
-  function doConnect()
-  {
-    if (window.MozWebSocket)
-    {
-      logErrorToConsole('Info', 'This browser supports WebSocket using the MozWebSocket constructor');
-      window.WebSocket = window.MozWebSocket;
-    }
-    else if (!window.WebSocket)
-    {
-      logErrorToConsole('ERROR', 'This browser does not have support for WebSocket');
-      return;
-    }
-
-    // prefer text messages
-    var uri = wsUri.value;
-    websocket = new WebSocket(uri,protocol);
-    websocket.onopen = function(evt) { onOpen(evt) };
-    websocket.onclose = function(evt) { onClose(evt) };
-    websocket.onmessage = function(evt) { onMessage(evt) };
-    websocket.onerror = function(evt) { onError(evt) };
-  }
-
-  function doDisconnect()
-  {
-	loopRunning = false;
-    websocket.close()
-  }
-
-	var countSend = 0;
-  function doSend()
-  {
-	var text = (countSend++) + ' ' + sendMessage.value;
-    logTextToConsole('SENT: '  + text);
-    websocket.send(text);
-  }
-
-  var countLoop = 0;
-  function doSendLoop()
-  {	
-	loopRunning = !loopRunning;
-	console.log("doSendLoop", loopRunning);
-	
-	if ( loopRunning ) {
-		countLoop = 0;
-		sendButLoop.innerText  = "Stop Loop";
-		sendLoop();
-	} else{
-		sendButLoop.innerText  = "Send Loop";
-	}
-  }
-    
-  function sendLoop()
-  {	
-	if ( loopRunning )
-	{
-		setTimeout(function(){ 
-			var text = "SENT: textoLoop: " + countLoop++;
-			logTextToConsole(text);
-			websocket.send(text);
-			sendLoop();
-		}, 1000); 
-	}
-  }
-  
-
-  function logTextToConsole(text) {
-    var span = document.createTextNode(text);
-    logElementToConsole(span);
-  }
-
-  // label is a string like 'Info' or 'Error'.
-  function logErrorToConsole(label, text) {
-    var span = document.createElement('span');
-    span.style.wordWrap = 'break-word';
-    span.style.color = 'red';
-    span.innerHTML = '<strong>'+label+':</strong> ';
-
-    var text = document.createTextNode(text);
-    span.appendChild(text);
-
-    logElementToConsole(span);
-	console.log("ERROR", text);
-  }
-
-  function logElementToConsole(element) {
-
-    var p = document.createElement('p');
-    p.style.wordWrap = 'break-word';
-//    p.innerHTML = getSecureTag();
-    p.appendChild(element);
-
-    consoleLog.appendChild(p);
-
-    while (consoleLog.childNodes.length > 50)
-    {
-      consoleLog.removeChild(consoleLog.firstChild);
-    }
-
-    consoleLog.scrollTop = consoleLog.scrollHeight;
-  }
-
-  function onOpen(evt)
-  {
-    logTextToConsole('CONNECTED');
-    setGuiConnected(true);
-
-    // For convenience, put the cursor in the message field, and at the end of the text.
-    sendMessage.focus();
-    sendMessage.selectionStart = sendMessage.selectionEnd = sendMessage.value.length;
-  }
-
-  function onClose(evt)
-  {
-    logTextToConsole('DISCONNECTED');
-    setGuiConnected(false);
-  }
-
-  function onMessage(evt)
-  {
-    var span = document.createElement('span');
-    span.style.wordWrap = 'break-word';
-    span.style.color = 'blue';
-    span.innerHTML = 'RECEIVED: ';
-
-	if ( evt.data instanceof Blob)
-	{
-		console.log("cria FileReader");
-		var reader = new FileReader();
-		reader.addEventListener("loadend", function() {
-			// reader.result contém o conteúdo do blob como uma array tipada
-			console.log(reader.result);
-			var message = document.createTextNode(reader.result);
-			span.appendChild(message);
-
-			logElementToConsole(span);
-		
-		});
-		reader.readAsText(evt.data);
-	}
-	else 
-	{
-	
-		var message = document.createTextNode(evt.data);
-		span.appendChild(message);
-
-		logElementToConsole(span);
-	}
-  }
-
-  function onError(evt)
-  {
-    logErrorToConsole('ERROR', evt.data);	
-  }
-
-  function setGuiConnected(isConnected)
-  {
-    wsUri.disabled = isConnected;
-    connectBut.disabled = isConnected;
-    disconnectBut.disabled = !isConnected;
-    sendMessage.disabled = !isConnected;
-    sendBut.disabled = !isConnected;
-	sendButLoop.disabled = !isConnected;
- 
-    if (isConnected)
-    {
-      sendButLoop.innerText  = "Send Loop";
-    }
-	else
-	{
-		sendButLoop.innerText  = "Stop Loop";
-	}
-
-  }
-
-  function clearLog()
-  {
-    while (consoleLog.childNodes.length > 0)
-    {
-     consoleLog.removeChild(consoleLog.lastChild);
-    }
-  }
+        }
 
 
-window.addEventListener('load', echoHandlePageLoad, false);
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)', 'i'),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        function doConnect() {
+            if (window.MozWebSocket) {
+                logErrorToConsole('Info', 'This browser supports WebSocket using the MozWebSocket constructor');
+                window.WebSocket = window.MozWebSocket;
+            }
+            else if (!window.WebSocket) {
+                logErrorToConsole('ERROR', 'This browser does not have support for WebSocket');
+                return;
+            }
+
+            // prefer text messages
+            var uri = wsUri.value;
+            websocket = new WebSocket(uri, protocol);
+            websocket.onopen = function (evt) { onOpen(evt) };
+            websocket.onclose = function (evt) { onClose(evt) };
+            websocket.onmessage = function (evt) { onMessage(evt) };
+            websocket.onerror = function (evt) { onError(evt) };
+        }
+
+        function doDisconnect() {
+            loopRunning = false;
+            websocket.close()
+        }
+
+        var countSend = 0;
+        function doSend() {
+            var text = (countSend++) + ' ' + sendMessage.value;
+            logTextToConsole('SENT: ' + text);
+            websocket.send(text);
+        }
+
+        var countLoop = 0;
+        function doSendLoop() {
+            loopRunning = !loopRunning;
+            console.log("doSendLoop", loopRunning);
+
+            if (loopRunning) {
+                countLoop = 0;
+                sendButLoop.innerText = "Stop Loop";
+                sendLoop();
+            } else {
+                sendButLoop.innerText = "Send Loop";
+            }
+        }
+
+        function sendLoop() {
+            if (loopRunning) {
+                setTimeout(function () {
+                    var text = "SENT: textoLoop: " + countLoop++;
+                    logTextToConsole(text);
+                    websocket.send(text);
+                    sendLoop();
+                }, 1000);
+            }
+        }
 
 
-  </script>
-<style>
-#consoleLog {
-	border: solid 1px #999999;
-	border-top-color: #CCCCCC;
-	border-left-color: #CCCCCC;
-	padding: 5px;
-  width: 100%;
-	height: 172px;
-	overflow-y: scroll;
-}
+        function logTextToConsole(text) {
+            var span = document.createTextNode(text);
+            logElementToConsole(span);
+        }
 
-#consoleLog p {
-  font-size: 11px;
-	line-height: 150%;
-}
-</style>
-  <h2>WebSocket Test</h2>
+        // label is a string like 'Info' or 'Error'.
+        function logErrorToConsole(label, text) {
+            var span = document.createElement('span');
+            span.style.wordWrap = 'break-word';
+            span.style.color = 'red';
+            span.innerHTML = '<strong>' + label + ':</strong> ';
 
-  <div id="output"></div>
-  
-<div id="echo">
-  <div id="echo-config" style="float: left;">
-	<strong>Location:</strong><br>
-	<input  id="wsUri" size="35">
-	<br>
-	<!-- <input class="draw-border echo-checkbox" type="checkbox" id="secureCb" onClick="toggleTls();"><br>
-	<span id="secureCbLabel" style="font-size: smaller; color: black;">Use secure WebSocket (TLS)</span><br> -->
-	<button id="connect">Connect</button>
-	<button id="disconnect" disabled="">Disconnect</button>
-	<br>
-	<br>
-	<strong>Message:</strong><br>
-	<input id="sendMessage" size="35" value="Send with HTML5 WebSocket" disabled="">
-	<br>
-	<button id="send" disabled="">Send</button>
-	<button id="sendLoop" disabled="">sendLoop</button>
-  </div>
-  <div id="echo-log" style="float: left; margin-left: 20px; padding-left: 20px; width: 350px; border-left: solid 1px #cccccc;"> <strong>Log:</strong>
-	<div id="consoleLog"></div>
-	<button  id="clearLogBut" style="position: relative; top: 3px;">Clear log</button>
-  </div>
-</div>
+            var text = document.createTextNode(text);
+            span.appendChild(text);
+
+            logElementToConsole(span);
+            console.log("ERROR", text);
+        }
+
+        function logElementToConsole(element) {
+
+            var p = document.createElement('p');
+            p.style.wordWrap = 'break-word';
+            //    p.innerHTML = getSecureTag();
+            p.appendChild(element);
+
+            consoleLog.appendChild(p);
+
+            while (consoleLog.childNodes.length > 50) {
+                consoleLog.removeChild(consoleLog.firstChild);
+            }
+
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+
+        function onOpen(evt) {
+            logTextToConsole('CONNECTED');
+            setGuiConnected(true);
+
+            // For convenience, put the cursor in the message field, and at the end of the text.
+            sendMessage.focus();
+            sendMessage.selectionStart = sendMessage.selectionEnd = sendMessage.value.length;
+        }
+
+        function onClose(evt) {
+            logTextToConsole('DISCONNECTED');
+            setGuiConnected(false);
+        }
+
+        function onMessage(evt) {
+            var span = document.createElement('span');
+            span.style.wordWrap = 'break-word';
+            span.style.color = 'blue';
+            span.innerHTML = 'RECEIVED: ';
+
+            if (evt.data instanceof Blob) {
+                console.log("cria FileReader");
+                var reader = new FileReader();
+                reader.addEventListener("loadend", function () {
+                    // reader.result contém o conteúdo do blob como uma array tipada
+                    console.log(reader.result);
+                    var message = document.createTextNode(reader.result);
+                    span.appendChild(message);
+
+                    logElementToConsole(span);
+
+                });
+                reader.readAsText(evt.data);
+            }
+            else {
+
+                var message = document.createTextNode(evt.data);
+                span.appendChild(message);
+
+                logElementToConsole(span);
+            }
+        }
+
+        function onError(evt) {
+            logErrorToConsole('ERROR', evt.data);
+        }
+
+        function setGuiConnected(isConnected) {
+            wsUri.disabled = isConnected;
+            connectBut.disabled = isConnected;
+            disconnectBut.disabled = !isConnected;
+            sendMessage.disabled = !isConnected;
+            sendBut.disabled = !isConnected;
+            sendButLoop.disabled = !isConnected;
+
+            if (isConnected) {
+                sendButLoop.innerText = "Send Loop";
+            }
+            else {
+                sendButLoop.innerText = "Stop Loop";
+            }
+
+        }
+
+        function clearLog() {
+            while (consoleLog.childNodes.length > 0) {
+                consoleLog.removeChild(consoleLog.lastChild);
+            }
+        }
+
+
+        window.addEventListener('load', echoHandlePageLoad, false);
+
+
+    </script>
+    <style>
+        #consoleLog {
+            border: solid 1px #999999;
+            border-top-color: #CCCCCC;
+            border-left-color: #CCCCCC;
+            padding: 5px;
+            width: 100%;
+            height: 300px;
+            overflow-y: scroll;
+        }
+
+            #consoleLog p {
+                font-size: 11px;
+                line-height: 150%;
+            }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <h2>WebSocket Test</h2>
+
+        <div id="output"></div>
+
+        <div id="echo" class="row">
+            <div id="echo-config" class="col-sm-6">
+                <div class="form-group">
+                    <label for="url">Location:</label>
+                    <input type="url" class="form-control" id="wsUri">
+                </div>
+                <div class="form-group">
+                    <button id="connect" class="btn btn-success">Connect</button>
+                    <button id="disconnect" class="btn btn-danger" disabled="">Disconnect</button>
+                </div>
+                <div class="form-group">
+                    <label for="url">Message:</label>
+                    <input type="url" class="form-control" id="sendMessage" value="Send with HTML5 WebSocket" disabled="">
+                </div>
+                <div class="form-group">
+                    <button id="send" class="btn btn-primary" disabled="">Send</button>
+                    <button id="sendLoop" class="btn btn-info" disabled="">sendLoop</button>
+                </div>
+            </div>
+            <div id="echo-log" class="col-sm-6">
+                <div class="form-group">
+                    <label for="url">Log:</label>
+                    <div id="consoleLog"></div>
+                </div>               
+                <div class="form-group">
+                    <button id="clearLogBut" class="btn btn-warning">Clear log</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
