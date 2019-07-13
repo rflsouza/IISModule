@@ -20,14 +20,15 @@ void MyWebSocket::Reading()
 	IISHelpers::GetVariable(m_HttpContext, "REMOTE_PORT", &strTemp, &strTempLength, false);
 	remote.port = strTemp ? strTemp : "";
 	IISHelpers::GetVariable(m_HttpContext, "REMOTE_USER", &strTemp, &strTempLength, false);
-	remote.user = strTemp ? strTemp : "";
-	strLog << __FUNCTION__ << " REMOTE_ADDR: " << remote.addr << " REMOTE_HOST: " << remote.host << " REMOTE_PORT: " << remote.port << " REMOTE_USER: " << remote.user << std::endl;
-	p_log->write(&strLog);
+	remote.user = strTemp ? strTemp : "";	
 
 	IHttpRequest* pHttpRequest = m_HttpContext->GetRequest();
 	HTTP_REQUEST * httpRequest = pHttpRequest->GetRawHttpRequest();
 	remote.connectionId = httpRequest->ConnectionId;
 	std::string ip = IISHelpers::GetIpAddr( httpRequest->Address.pLocalAddress );
+
+	strLog << __FUNCTION__ << "ESTABLISHED connectionId: " << remote.connectionId << " REMOTE_ADDR: " << remote.addr << " REMOTE_HOST: " << remote.host << " REMOTE_PORT: " << remote.port << " REMOTE_USER: " << remote.user << std::endl;
+	p_log->write(&strLog);
 
 	ULONG count = 0;
 	while (true)
@@ -40,13 +41,14 @@ void MyWebSocket::Reading()
 		hr = m_WebSocketContext->GetCloseStatus(&statusSocket, &statusBuffer, &statusLength);
 		if (hr == NULL || statusSocket == -1)
 		{
-			strLog << __FUNCTION__ << "websockets closed, Status:" << statusBuffer << " ret:" << hr << hr;
+			strLog << __FUNCTION__ << "websocket[" << remote.port << "]  closed, statusSocket:" << statusSocket << " statusBuffer:" << statusBuffer << " statusLength:" << statusLength << " hr:" << hr;
 			p_log->write(&strLog);
 
 			break;
 		}
 
-		ZeroMemory(readBuffer, BUFFERLENGTH);
+		readBufferLength = BUFFERLENGTH;
+		ZeroMemory(readBuffer, readBufferLength);
 		BOOL bUTF8Encoded = FALSE;
 		// true if this is the final data fragment; otherwise false. need read more data!!!!
 		BOOL bFinalFragment = TRUE;
@@ -55,19 +57,24 @@ void MyWebSocket::Reading()
 		BOOL bCompletionExpected = FALSE;
 
 		std::unique_lock<std::mutex> lck(mtx);		
-		hr = m_WebSocketContext->ReadFragment(readBuffer, &BUFFERLENGTH, TRUE, &bUTF8Encoded, &bFinalFragment, &bConnectionClose, functorWebSocket::ReadAsyncCompletion, this, &bCompletionExpected);
+		hr = m_WebSocketContext->ReadFragment(readBuffer, &readBufferLength, TRUE, &bUTF8Encoded, &bFinalFragment, &bConnectionClose, functorWebSocket::ReadAsyncCompletion, this, &bCompletionExpected);
 		lck.unlock();
 
 		if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
 			//normal event!
 			//strLog << __FUNCTION__ << "normal event! -> ERROR_IO_PENDING READ websocket[" << remote.port << "] Error hr:" << hr << " hr_win32:" << HRESULT_FROM_WIN32(hr);
 			//p_log->write(&strLog);
-			::Sleep(1000);
+			::Sleep(100);
 		}
 		else if (FAILED(hr))
 		{
 			strLog << __FUNCTION__ << " ERROR READ websocket[" << remote.port << "] Error hr:" << hr << " hr_win32:" << HRESULT_FROM_WIN32(hr);
 			p_log->write(&strLog);
+
+			strLog << __FUNCTION__ << " FINALIZANDO websocket[" << remote.port << "]  statusSocket:" << statusSocket << " statusBuffer:" << statusBuffer << " statusLength:" << statusLength << " hr:" << hr;
+			p_log->write(&strLog);
+			
+			break;
 		} 
 		else if (bCompletionExpected == FALSE)
 		{
@@ -79,20 +86,20 @@ void MyWebSocket::Reading()
 				<< " fFinalFragment:" << bFinalFragment
 				<< " fClose:" << bConnectionClose
 				<< " bCompletionExpected:" << bCompletionExpected
-				<< " strLength:" << strnlen((char *)readBuffer, BUFFERLENGTH)
+				<< " strLength:" << strnlen((char *)readBuffer, readBufferLength)
 				<< " text:" << (char *)readBuffer;
 			p_log->write(&strLog);
 
 			if (bFinalFragment == false) {
 				//need read more data!
-				//data.resize(BUFFERLENGTH);				
-				//data.insert(data.end(),(const char *)readBuffer, (size_t)BUFFERLENGTH);
+				//data.resize(readBufferLength);				
+				//data.insert(data.end(),(const char *)readBuffer, (size_t)readBufferLength);
 				data.append((char *)readBuffer);
 			}
 			else
 			{
-				//data.resize(BUFFERLENGTH);
-				//data.insert(data.end(), (const char *)readBuffer, (const size_t)BUFFERLENGTH);
+				//data.resize(readBufferLength);
+				//data.insert(data.end(), (const char *)readBuffer, (const size_t)readBufferLength);
 				data.append((char *)readBuffer);
 
 				// return Data synchrono. running now in this call.
@@ -106,7 +113,8 @@ void MyWebSocket::Reading()
 				std::string echo("echo " + std::string(data.data()));
 				HRESULT hr = Write(echo);
 				if (FAILED(hr)) {
-					strLog << "\n" << __FUNCTION__ << " Error to Write:" << echo;
+					strLog << __FUNCTION__ << " READ SYNC websocket[" << remote.port << "]"
+					<< " Error to WRITE ECHO:" << echo << " ErrorHandler:" << ErrorHandler(__FUNCTION__);
 					p_log->write(&strLog);
 				}
 				// FIM ECHO
@@ -129,7 +137,7 @@ void MyWebSocket::Reading()
 				<< " fFinalFragment:" << bFinalFragment
 				<< " fClose:" << bConnectionClose
 				<< " bCompletionExpected:" << bCompletionExpected
-				<< " strLength:" << strnlen((char *)readBuffer, BUFFERLENGTH)
+				<< " strLength:" << strnlen((char *)readBuffer, readBufferLength)
 				<< " text:" << (char *)readBuffer
 				<< "--------------------------------------------------------";
 			p_log->write(&strLog);
@@ -153,8 +161,28 @@ HRESULT MyWebSocket::Write(std::string data)
 
 	hr = m_WebSocketContext->WriteFragment(writeBuffer, &writeLength, TRUE, FALSE, TRUE, functorWebSocket::WritAsyncCompletion, this, NULL);
 	if (FAILED(hr)) {
-		strLog << __FUNCTION__ << " Error WriteFragment hr:" << hr;
+		strLog << __FUNCTION__ << " websocket[" << remote.port << "] Error WriteFragment hr:" << hr;
 		p_log->write(&strLog);
+
+		if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
+			
+			//normal event!
+			strLog << __FUNCTION__ << "websocket[" << remote.port << "] Waiting 300ms and Write Again -> ERROR_IO_PENDING Error hr:" << hr << " hr_win32:" << HRESULT_FROM_WIN32(hr);
+			p_log->write(&strLog);
+
+			::Sleep(300);
+
+			hr = m_WebSocketContext->WriteFragment(writeBuffer, &writeLength, TRUE, FALSE, TRUE, functorWebSocket::WritAsyncCompletion, this, NULL);
+			if (FAILED(hr)) {
+				strLog << __FUNCTION__ << " Error WriteFragment hr:" << hr << "CRITICAL MSG NOT SEND websocket[" << remote.port << "] data:" << writeBuffer;
+				p_log->write(&strLog);
+			}
+			else
+			{
+				strLog << __FUNCTION__ << " websocket[" << remote.port << "] RESEND WriteFragment sucesso.";
+				p_log->write(&strLog);
+			}
+		}
 	}
 
 	return hr;
@@ -213,8 +241,9 @@ void WINAPI functorWebSocket::ReadAsyncCompletion(HRESULT hrError, VOID * pvComp
 		std::string echo("echo " + std::string(pws->data.data()));
 		HRESULT hr = pws->Write(echo);
 		if (FAILED(hr)) {
-			strLog << "\n" << __FUNCTION__ << " Error to Write:" << echo;
-			pws->p_log->write(&strLog);
+			strLog << __FUNCTION__ << " READ ASYNC websocket[" << pws->remote.port << "]"
+				<< " Error to WRITE ECHO:" << echo << " ErrorHandler:" << ErrorHandler(__FUNCTION__);
+			p_log->write(&strLog);
 		}
 		// FIM ECHO
 

@@ -103,7 +103,7 @@
 
             // prefer text messages
             var uri = wsUri.value;
-            websocket = new WebSocket(uri, protocol);
+            websocket = new WebSocket(uri/*, protocol*/);
             websocket.onopen = function (evt) { onOpen(evt) };
             websocket.onclose = function (evt) { onClose(evt) };
             websocket.onmessage = function (evt) { onMessage(evt) };
@@ -143,7 +143,7 @@
                     logTextToConsole(text);
                     websocket.send(text);
                     sendLoop();
-                }, 1000);
+                }, 100);
             }
         }
 

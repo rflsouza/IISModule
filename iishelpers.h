@@ -65,4 +65,7 @@ public:
 	static bool WriteResponse(IHttpContext* pHttpContext, const std::string &content);
 };
 
+
+std::string ErrorHandler(LPTSTR lpszFunction);
+
 #endif

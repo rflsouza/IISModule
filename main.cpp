@@ -8,6 +8,14 @@ https://docs.microsoft.com/en-us/iis/develop/runtime-extensibility/develop-a-nat
 https://docs.microsoft.com/en-us/iis/develop/runtime-extensibility/sample-image-watermark-module
 https://docs.microsoft.com/en-us/iis/web-development-reference/native-code-development-overview/designing-native-code-http-modules
 https://docs.microsoft.com/en-us/iis/web-development-reference/native-code-development-overview/comparing-native-code-and-managed-code-notifications
+
+
+
+Performance Tuning to IIS webSocket 
+https://github.com/SignalR/SignalR/wiki/Performance
+
+ client version of IIS, which is on Windows CLIENT(DESKTOP) 8/10, does have a concurrent connection request limitation (10)
+https://weblogs.asp.net/owscott/windows-8-iis-8-concurrent-requests-limit
 */
 
 /*

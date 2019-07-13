@@ -9,5 +9,6 @@ PVOID g_pModuleContext = NULL;
 IISHelpers g_IISHelper;
 
 CLog *p_log;
-std::atomic<unsigned long> g_requests = 0;
+std::atomic<unsigned long> g_requestsCount = 0;
+std::atomic<unsigned long> g_websocketsCount = 0;
 std::string gAppPath;

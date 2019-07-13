@@ -99,6 +99,7 @@ try
 	strLog << __FUNCTION__;
 	p_log->write(&strLog);
 
+	g_requestsCount++;
 
 	HRESULT hr = S_OK;
 	IHttpRequest* pHttpRequest = pHttpContext->GetRequest();
@@ -153,7 +154,7 @@ try
 				pHttpResponse->SetHeader("Upgrade", "websocket", strlen("websocket"), true);
 				pHttpResponse->SetHeader("Connection", "Upgrade", strlen("Upgrade"), true);
 				pHttpResponse->SetHeader("Sec-WebSocket-Accept", output, strlen(output), true);
-				pHttpResponse->SetHeader("Sec-WebSocket-Protocol", "xwc", strlen("xwc"), true);
+				//pHttpResponse->SetHeader("Sec-WebSocket-Protocol", "xwc", strlen("xwc"), true);
 
 				pHttpResponse->SetStatus(101, "Web Socket Protocol Handshake", 0, hr);
 				if (FAILED(hr))
@@ -196,10 +197,15 @@ try
 				USHORT statusSocket = 0;
 				LPCWSTR statusBuffer = NULL;
 				USHORT statusLength = 0;
-
+				
+				strLog << __FUNCTION__ << "WEBSOCKET ESTABLISHED " << ++g_websocketsCount;
+				p_log->write(&strLog);
 
 				MyWebSocket websocket(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
 				websocket.Reading();
+								
+				strLog << __FUNCTION__ << "WEBSOCKET RELEASED " << --g_websocketsCount;
+				p_log->write(&strLog);
 
 				//ULONG count = 1;
 				//while (true)

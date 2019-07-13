@@ -39,6 +39,7 @@ public:
 	IWebSocketContext * m_WebSocketContext;
 
 	void * readBuffer;
+	DWORD readBufferLength;
 	void * writeBuffer;
 
 
@@ -47,7 +48,7 @@ public:
 	//Constructor
 	MyWebSocket() = delete;
 	MyWebSocket(CLog *log, IHttpServer *is, IHttpContext *ic, IWebSocketContext *wsc) : p_log(log), m_HttpServer(is), m_HttpContext(ic), m_WebSocketContext(wsc)
-	{
+	{		
 		readBuffer = ic->AllocateRequestMemory(BUFFERLENGTH);
 		writeBuffer = ic->AllocateRequestMemory(BUFFERLENGTH);		
 	};
