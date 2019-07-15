@@ -5,6 +5,7 @@
 void MyWebSocket::Reading()
 {
 	std::ostringstream strLog;
+	DWORD tick;
 	HRESULT hr = S_OK;
 	USHORT statusSocket = 0;
 	LPCWSTR statusBuffer = NULL;
@@ -21,13 +22,15 @@ void MyWebSocket::Reading()
 	remote.port = strTemp ? strTemp : "";
 	IISHelpers::GetVariable(m_HttpContext, "REMOTE_USER", &strTemp, &strTempLength, false);
 	remote.user = strTemp ? strTemp : "";	
+	IISHelpers::GetVariable(m_HttpContext, "HTTP_User-Agent", &strTemp, &strTempLength, false);
+	remote.userAgent = strTemp ? strTemp : "";
 
 	IHttpRequest* pHttpRequest = m_HttpContext->GetRequest();
 	HTTP_REQUEST * httpRequest = pHttpRequest->GetRawHttpRequest();
 	remote.connectionId = httpRequest->ConnectionId;
 	std::string ip = IISHelpers::GetIpAddr( httpRequest->Address.pLocalAddress );
 
-	strLog << __FUNCTION__ << "ESTABLISHED connectionId: " << remote.connectionId << " REMOTE_ADDR: " << remote.addr << " REMOTE_HOST: " << remote.host << " REMOTE_PORT: " << remote.port << " REMOTE_USER: " << remote.user << std::endl;
+	strLog << __FUNCTION__ << " ESTABLISHED connectionId: " << remote.connectionId << " REMOTE_ADDR: " << remote.addr << " REMOTE_HOST: " << remote.host << " REMOTE_PORT: " << remote.port << " REMOTE_USER: " << remote.user << " User-Agent: " << remote.userAgent;
 	p_log->write(&strLog);
 
 	ULONG count = 0;
@@ -125,11 +128,12 @@ void MyWebSocket::Reading()
 				// FIM ECHO
 
 				data.clear();
-				strLog << __FUNCTION__ << " READ SYNC websocket[" << remote.port << "]"
+				strLog << __FUNCTION__ << " READ IN SYNC websocket[" << remote.port << "]"
 					<< " after clear" 
 					<< " data.length:" << data.length()
 					<< " data.capacity:" << data.capacity()
 					<< " data:" << data.data();
+				p_log->write(&strLog);
 			}
 		}
 		else
@@ -274,6 +278,7 @@ void WINAPI functorWebSocket::ReadAsyncCompletion(HRESULT hrError, VOID * pvComp
 			<< " data.length:" << pws->data.length()
 			<< " data.capacity:" << pws->data.capacity()
 			<< " data:" << pws->data.data();
+		p_log->write(&strLog);
 	}
 };
 

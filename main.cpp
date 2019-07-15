@@ -50,6 +50,14 @@ BOOL WINAPI DllMain(
 		strLog << "Path: " << gAppPath;
 		p_log->write(&strLog, true);
 
+		strLog << "SetPriority: HIGH NORMAL" << gAppPath;
+		p_log->write(&strLog);
+
+		if (!SetPriorityClass(GetCurrentProcess(), /*ABOVE_NORMAL_PRIORITY_CLASS*/ HIGH_PRIORITY_CLASS)) {
+			strLog << ErrorHandler("SetPriority");
+				p_log->write(&strLog, true);
+		}
+
 		g_IISHelper.RegisterIIHelpersModule();
 
 		break;		

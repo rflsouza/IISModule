@@ -25,6 +25,7 @@ public:
 		std::string host;
 		std::string port;
 		std::string user;
+		std::string userAgent;
 	} remote;
 
 	Mutex mtx;

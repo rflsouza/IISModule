@@ -234,10 +234,8 @@ DWORD WINAPI threadWebSocket(LPVOID lpParam)
 			strLog << L"WinHttpSendRequest handshake ERROR_WINHTTP_TIMEOUT " << ERROR_WINHTTP_TIMEOUT;
 			p_log->write(&strLog);
 		}
-		else
-		{
-			goto quit;
-		}
+
+		goto quit;		
 	}
 
 	tick = GetTickCount();
@@ -259,10 +257,8 @@ DWORD WINAPI threadWebSocket(LPVOID lpParam)
 			strLog << L"WinHttpReceiveResponse handshake ERROR_WINHTTP_TIMEOUT " << ERROR_WINHTTP_TIMEOUT;
 			p_log->write(&strLog);
 		}
-		else
-		{
-			goto quit;
-		}
+
+		goto quit;
 	}
 
 	//
@@ -301,6 +297,9 @@ DWORD WINAPI threadWebSocket(LPVOID lpParam)
 
 	for (int i = 1; i <= 10000; i++)
 	{
+
+		::Sleep( (rand() % 100 * 10) );
+
 		//
 		// Send and receive data on the websocket protocol.
 		//

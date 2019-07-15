@@ -101,9 +101,11 @@ try
 
 	g_requestsCount++;
 
+	DWORD tick;
 	HRESULT hr = S_OK;
 	IHttpRequest* pHttpRequest = pHttpContext->GetRequest();
 	IHttpResponse* pHttpResponse = pHttpContext->GetResponse();
+
 
 	std::map<std::string, int> urlmap;
 	urlmap["/websocket"] = EHTTPSamples::WEB_SOCKET;
@@ -117,7 +119,7 @@ try
 	//DWORD v_pcchValueLength;
 	//IISHelpers::GetVariable(pHttpContext, "HTTP_URL", &v_forwardURL, &v_pcchValueLength, true);
 		
-	strLog << __FUNCTION__ << "Request: "<< v_forwardURL << std::endl;
+	strLog << __FUNCTION__ << "Request: " << v_forwardURL;
 	p_log->write(&strLog);
 
 	// sample:  /iis-module/socket
@@ -126,7 +128,7 @@ try
 		v_forwardURL = v_forwardURL.substr(found);
 	}
 
-	strLog << __FUNCTION__ << "Command: " << v_forwardURL << std::endl;
+	strLog << __FUNCTION__ << "Command: " << v_forwardURL;
 	p_log->write(&strLog);
 
 	if (urlmap.find(v_forwardURL) != urlmap.end())
@@ -140,12 +142,20 @@ try
 				//https://www.codeproject.com/Articles/716148/Using-Sec-Websocket-Protocol
 
 				// DebugBreak();
+				PCSTR userAgent = NULL;
+				DWORD rawuserAgentLength = 0;
+				IISHelpers::GetVariable(pHttpContext, "HTTP_User-Agent", &userAgent, &rawuserAgentLength, true);
+				strLog << __FUNCTION__ << " WEB_SOCKET" << " userAgent[" << userAgent << "]";
+				p_log->write(&strLog);
 
 #pragma region WEBSOCKET Handshake
 				PCSTR rawBuffer = NULL;
 				DWORD rawLength = 0;
 				IISHelpers::GetVariable(pHttpContext, "HEADER_Sec-WebSocket-Key", &rawBuffer, &rawLength, true);
 				//auto hhc = pHttpRequest->GetHeader(HTTP_HEADER_ID::HttpHeaderUpgrade);
+
+				strLog << __FUNCTION__ << " WebSocketHandshake::generate" << " userAgent[" << userAgent << "]";
+				p_log->write(&strLog);
 
 				char output[29] = {};
 				WebSocketHandshake::generate(rawBuffer, output);
@@ -156,10 +166,19 @@ try
 				pHttpResponse->SetHeader("Sec-WebSocket-Accept", output, strlen(output), true);
 				//pHttpResponse->SetHeader("Sec-WebSocket-Protocol", "xwc", strlen("xwc"), true);
 
+
+				tick = GetTickCount();
+				strLog << _T("Start SetStatus 101 Handshake [") << tick << _T("]") << " userAgent[" << userAgent << "]";
+				p_log->write(&strLog);
+
 				pHttpResponse->SetStatus(101, "Web Socket Protocol Handshake", 0, hr);
+
+				strLog << _T("End WinHttpOpen [") << tick << _T("] duration:" << GetTickCount() - tick) << " userAgent[" << userAgent << "]";;
+				p_log->write(&strLog);
+
 				if (FAILED(hr))
 				{
-					strLog << __FUNCTION__ << "Error to SetStatus 101 in Upgrade" << hr;
+					strLog << __FUNCTION__ << "Error to SetStatus 101 in Upgrade erro:[" << hr << "] userAgent[" << userAgent << "] " << ErrorHandler("HttpGetExtendedInterface");
 					p_log->write(&strLog);
 					goto Finished;
 				}
@@ -168,14 +187,29 @@ try
 				DWORD cbSent = 0;
 				// Buffer to store if asyncronous completion is pending.
 				BOOL fCompletionExpected = false;
+
+				tick = GetTickCount();
+				strLog << _T("Start Flush Store if asyncronous [") << tick << _T("]") << " userAgent[" << userAgent << "]";
+				p_log->write(&strLog);
+
 				hr = pHttpResponse->Flush(false, true, &cbSent, &fCompletionExpected);
+
+				strLog << _T("End Flush Store if asyncronous [") << tick << _T("] duration:" << GetTickCount() - tick) << " userAgent[" << userAgent << "]";
+				p_log->write(&strLog);
+
+				if (FAILED(hr))
+				{
+					strLog << __FUNCTION__ << "Flush Store if asyncronous error[" << hr << "] userAgent[" << userAgent << "] " << ErrorHandler("HttpGetExtendedInterface");
+					p_log->write(&strLog);
+				}
+
 #pragma endregion
 
 				IHttpContext3* pHttpContext3;
 				hr = HttpGetExtendedInterface(g_pHttpServer, pHttpContext, &pHttpContext3);
 				if (FAILED(hr))
 				{
-					strLog << __FUNCTION__ << "Error to HttpGetExtendedInterface" << hr;
+					strLog << __FUNCTION__ << "Error to HttpGetExtendedInterface error[" << hr << "] userAgent[" << userAgent << "] " << ErrorHandler("HttpGetExtendedInterface");
 					p_log->write(&strLog);
 					goto Finished;
 				}
@@ -188,7 +222,7 @@ try
 				if (pWebSocketContext == NULL)
 				{
 					hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
-					strLog << __FUNCTION__ << "Error to GetContext websockets" << hr;
+					strLog << __FUNCTION__ << "Error to GetContext websockets [" << hr << "] userAgent[" << userAgent << "] ";
 					p_log->write(&strLog);
 
 					goto Finished;
@@ -198,14 +232,22 @@ try
 				LPCWSTR statusBuffer = NULL;
 				USHORT statusLength = 0;
 				
-				strLog << __FUNCTION__ << "WEBSOCKET ESTABLISHED " << ++g_websocketsCount;
+				strLog << __FUNCTION__ << " WEBSOCKET ESTABLISHED COUNT:" << ++g_websocketsCount;
 				p_log->write(&strLog, true);
+
+				tick = GetTickCount();
+				strLog << _T("Start Create MyWebSocket [") << tick << _T("]");
+				p_log->write(&strLog);
 
 				//std::shared_ptr<MyWebSocket> websocket = std::make_shared<MyWebSocket>(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
 				MyWebSocket websocket(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
+
+				strLog << _T("End Start Create MyWebSocket [") << tick << _T("] duration:" << GetTickCount() - tick);
+				p_log->write(&strLog);
+
 				websocket.Reading();
 								
-				strLog << __FUNCTION__ << "WEBSOCKET RELEASED " << --g_websocketsCount;
+				strLog << __FUNCTION__ << "WEBSOCKET RELEASED COUNT:" << --g_websocketsCount;
 				p_log->write(&strLog, true);
 
 				//ULONG count = 1;
