@@ -3,10 +3,10 @@
 
 namespace fs = std::experimental::filesystem;
 
-CLog::CLog(std::string pathFile, std::string prefixFile) : flushCount(0)
+CLog::CLog(String pathFile, String prefixFile) : flushCount(0)
 {
 	m_pathFile = pathFile;
-	m_pathFile += "Logs\\";
+	m_pathFile += _T("Logs\\");
 
 	if (!fs::is_directory(m_pathFile) || !fs::exists(m_pathFile)) {
 		fs::create_directory(m_pathFile);
@@ -17,30 +17,36 @@ CLog::CLog(std::string pathFile, std::string prefixFile) : flushCount(0)
 	createFile();
 
 	if (ofs->is_open()) {
-		*ofs << "Log inicializado ProcessId:" << GetCurrentProcessId() << " ThreadId:" << GetCurrentThreadId() << " \n\n";
+		*ofs << _T("Log inicializado ProcessId:") << GetCurrentProcessId() << _T(" ThreadId:") << GetCurrentThreadId() << _T(" \n\n");
 	}	
 }
 
 CLog::~CLog()
 {
-	*ofs << "Log Finalizado\n\n";
+	*ofs << _T("Log Finalizado\n\n");
 	ofs->close();
 }
 
 void CLog::createFile()
 {	
-	GetLocalTime(&SysTime);	
-	sprintf_s(&strDate[0], 63, "%.4d%.2d%.2d%.2d%.2d%.2d%.3d", SysTime.wYear, SysTime.wMonth, SysTime.wDay, SysTime.wHour, SysTime.wMinute, SysTime.wSecond, SysTime.wMilliseconds);
-	std::string file = m_pathFile + "-" + std::string(&strDate[0]) + ".log";
+	GetLocalTime(&SysTime);		
+
+#if defined(UNICODE) || defined(_UNICODE)
+	swprintf_s(&strDate[0], 63, _T("%.4d%.2d%.2d%.2d%.2d%.2d%.3d"), SysTime.wYear, SysTime.wMonth, SysTime.wDay, SysTime.wHour, SysTime.wMinute, SysTime.wSecond, SysTime.wMilliseconds);
+#else
+	sprintf_s(&strDate[0], 63, _T("%.4d%.2d%.2d%.2d%.2d%.2d%.3d"), SysTime.wYear, SysTime.wMonth, SysTime.wDay, SysTime.wHour, SysTime.wMinute, SysTime.wSecond, SysTime.wMilliseconds);
+#endif
+
+	String file = m_pathFile + _T("-") + String(&strDate[0]) + _T(".log");
 
 	try { 
-		ofs = std::make_unique<std::ofstream>(file, std::ofstream::out);
+		ofs = std::make_unique<Ofstream>(file, Ofstream::out);
 
 
 		if (!ofs->is_open())
 		{
-			std::string erro = strerror(errno);
-			std::cerr << "Critical, unable to create log file " << erro;
+			String erro = Serror(errno);
+			Cerr << _T("Critical, unable to create log file ") << erro;
 			createFile();
 		}
 		else
@@ -50,7 +56,7 @@ void CLog::createFile()
 	}
 	catch (std::exception ex)
 	{
-		std::cerr << "Critical, unable to create log file" << ex.what();
+		Cerr << _T("Critical, unable to create log file") << ex.what();
 	}
 }
 
@@ -58,21 +64,22 @@ void CLog::checkFile()
 {
 	long size = ofs->tellp();
 	//*ofs << "size log:" << size << std::endl;
-	if (size > (20*1024*1024)) {
+	// 50MB = 50*1024*1024
+	if (size > (50*1024*1024)) {
 
 		ofs->flush();
 		ofs->close();
 
-		if (listFiles.size() >= 5) 
+		if (listFiles.size() >= 50) 
 		{
-			std::string file = listFiles.front();
-			std::cout << "Remove file:" << file << std::endl;
+			String file = listFiles.front();
+			Cout << _T("Remove file:") << file << std::endl;
 
-			if (remove(file.c_str()) != 0) {
-				std::cout << "Erro to remove file:" << file << std::endl;				
+			if (fs::remove(file.c_str()) != 0) {
+				Cout << _T("Erro to remove file:") << file << std::endl;
 			}				
 			else {
-				std::cout << "Remove file:" << file << " successfully" << std::endl;
+				Cout << _T("Remove file:") << file << _T(" successfully") << std::endl;
 				listFiles.pop();
 			}							
 		}
@@ -81,17 +88,22 @@ void CLog::checkFile()
 	}
 }
 
-void CLog::write(const char *text, bool forceWrite)
+void CLog::write(const TCHAR *text, bool forceWrite)
 {
 	GetLocalTime(&SysTime);
 
 	std::lock_guard<std::mutex> lk(mutex_);
 
-	sprintf_s(&strDate[0], 63, "%.2d/%.2d/%.2d %.2d:%.2d:%.2d.%.3d [%.6d] ", SysTime.wDay, SysTime.wMonth, SysTime.wYear, SysTime.wHour, SysTime.wMinute, SysTime.wSecond, SysTime.wMilliseconds, std::this_thread::get_id());
+
+#if defined(UNICODE) || defined(_UNICODE)
+	swprintf_s(&strDate[0], 63, _T("%.2d/%.2d/%.2d %.2d:%.2d:%.2d.%.3d [%.6d] "), SysTime.wDay, SysTime.wMonth, SysTime.wYear, SysTime.wHour, SysTime.wMinute, SysTime.wSecond, SysTime.wMilliseconds, std::this_thread::get_id());
+#else
+	sprintf_s(&strDate[0], 63, _T("%.2d/%.2d/%.2d %.2d:%.2d:%.2d.%.3d [%.6d] "), SysTime.wDay, SysTime.wMonth, SysTime.wYear, SysTime.wHour, SysTime.wMinute, SysTime.wSecond, SysTime.wMilliseconds, std::this_thread::get_id());
+#endif	
 
 	checkFile();
 
-	*ofs << &strDate[0] << text << "\n";
+	*ofs << &strDate[0] << text << _T("\n");
 
 #ifdef DEBUG
 	forceWrite = true;
@@ -106,15 +118,15 @@ void CLog::write(const char *text, bool forceWrite)
 	}
 }
 
-void CLog::write(const std::string &text, bool forceWrite)
+void CLog::write(const String &text, bool forceWrite)
 {
 	write(text.c_str(), forceWrite);
 }
 
-void CLog::write(std::ostringstream *text, bool forceWrite)
+void CLog::write(OStringstream *text, bool forceWrite)
 {	
-	std::string msg = text->str();
-	text->str(""); text->clear();	
+	String msg = text->str();
+	text->str(_T("")); text->clear();	
 
 	write(msg.c_str(), forceWrite);
 }

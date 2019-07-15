@@ -40,9 +40,12 @@ void MyWebSocket::Reading()
 		//https://tools.ietf.org/html/rfc6455
 		hr = m_WebSocketContext->GetCloseStatus(&statusSocket, &statusBuffer, &statusLength);
 		if (hr == NULL || statusSocket == -1)
-		{
-			strLog << __FUNCTION__ << "websocket[" << remote.port << "]  closed, statusSocket:" << statusSocket << " statusBuffer:" << statusBuffer << " statusLength:" << statusLength << " hr:" << hr;
+		{			
+			strLog << __FUNCTION__ << "websocket[" << remote.port << "]  closed, connectionId: " << remote.connectionId << " statusSocket:" << statusSocket << " statusBuffer:" << statusBuffer << " statusLength:" << statusLength << " hr:" << hr;
 			p_log->write(&strLog);
+
+			remote.connectionId = 0;
+			m_WebSocketContext->CancelOutstandingIO();
 
 			break;
 		}
@@ -56,7 +59,7 @@ void MyWebSocket::Reading()
 		// true if an asynchronous completion is pending for this call; otherwise, false. Running in this call!!!
 		BOOL bCompletionExpected = FALSE;
 
-		std::unique_lock<std::mutex> lck(mtx);		
+		std::unique_lock<Mutex> lck(mtx);
 		hr = m_WebSocketContext->ReadFragment(readBuffer, &readBufferLength, TRUE, &bUTF8Encoded, &bFinalFragment, &bConnectionClose, functorWebSocket::ReadAsyncCompletion, this, &bCompletionExpected);
 		lck.unlock();
 
@@ -64,7 +67,7 @@ void MyWebSocket::Reading()
 			//normal event!
 			//strLog << __FUNCTION__ << "normal event! -> ERROR_IO_PENDING READ websocket[" << remote.port << "] Error hr:" << hr << " hr_win32:" << HRESULT_FROM_WIN32(hr);
 			//p_log->write(&strLog);
-			::Sleep(100);
+			::Sleep(300);
 		}
 		else if (FAILED(hr))
 		{
@@ -74,6 +77,8 @@ void MyWebSocket::Reading()
 			strLog << __FUNCTION__ << " FINALIZANDO websocket[" << remote.port << "]  statusSocket:" << statusSocket << " statusBuffer:" << statusBuffer << " statusLength:" << statusLength << " hr:" << hr;
 			p_log->write(&strLog);
 			
+			remote.connectionId = 0;
+			m_WebSocketContext->CancelOutstandingIO();
 			break;
 		} 
 		else if (bCompletionExpected == FALSE)
@@ -153,7 +158,15 @@ HRESULT MyWebSocket::Write(std::string data)
 	std::ostringstream strLog;
 	HRESULT hr = S_OK;
 	
-	std::unique_lock<std::mutex> lck(mtx);
+	std::unique_lock<Mutex> lck(mtx);
+
+	if (this == nullptr)
+		return -1;
+	else if (remote.connectionId == 0) {
+		strLog << __FUNCTION__ << " Disconected websocket[" << remote.port << "]";
+		p_log->write(&strLog);
+		return -2;
+	}
 
 	ZeroMemory(writeBuffer, BUFFERLENGTH);
 	strcpy((char*)writeBuffer, data.c_str());
@@ -198,10 +211,18 @@ void WINAPI functorWebSocket::ReadAsyncCompletion(HRESULT hrError, VOID * pvComp
 		strLog << __FUNCTION__ << "Error ReadAsyncCompletion hr:" << hrError;
 		p_log->write(&strLog);
 	}
-
 	MyWebSocket* pws = (MyWebSocket*)pvCompletionContext;
+	//std::shared_ptr<MyWebSocket> pws(reinterpret_cast<MyWebSocket*>(pvCompletionContext));	
 
-	std::unique_lock<std::mutex> lck(pws->mtx);
+	std::unique_lock<Mutex> lck(pws->mtx);
+
+	if (pws == nullptr) 
+		return;
+	else if (pws->remote.connectionId == 0) {
+		strLog << __FUNCTION__ << " Disconected websocket[" << pws->remote.port << "]";
+		p_log->write(&strLog);
+		return;
+	}
 
 	DWORD readLength = 1024;
 	OutputDebugString((char *)pws->readBuffer);
@@ -254,39 +275,6 @@ void WINAPI functorWebSocket::ReadAsyncCompletion(HRESULT hrError, VOID * pvComp
 			<< " data.capacity:" << pws->data.capacity()
 			<< " data:" << pws->data.data();
 	}
-
-	//HRESULT hrac;
-	//void * readBufferMore = pws->m_HttpContext->AllocateRequestMemory(readLength);
-	//while (!fFinalFragment) 
-	//{
-	//	BOOL tCompletionExpected = FALSE;
-	//	pws->m_WebSocketContext->CancelOutstandingIO();
-
-	//	//read again
-	//	cbIO = 10;
-
-	//	hrac = pws->m_WebSocketContext->ReadFragment(readBufferMore, &cbIO, TRUE, &fUTF8Encoded, &fFinalFragment, &fClose, functorWebSocket::fWebSocketNULL, NULL, &tCompletionExpected);
-
-	//	//has read
-	//	if (cbIO > 0) {
-	//		strLog << __FUNCTION__ << " READY while websocket[" << pws->remote.port << "]"
-	//			<< " cbIO:" << cbIO
-	//			<< " fUTF8Encoded:" << fUTF8Encoded
-	//			<< " fFinalFragment:" << fFinalFragment
-	//			<< " fClose:" << fClose
-	//			<< " Length:" << readBufferMore
-	//			<< " strLength:" << strnlen((char *)readBufferMore, readLength)
-	//			<< " text:" << (char *)readBufferMore;
-	//		pws->p_log->write(&strLog);
-	//	}
-	//	if (FAILED(hrac)) {
-	//		strLog << "\n" << __FUNCTION__ << " Error to read while:" << hrac;
-	//		p_log->write(&strLog);
-	//		break;
-	//	}
-	//}
-
-
 };
 
 void WINAPI functorWebSocket::WritAsyncCompletion(HRESULT hrError, PVOID pvCompletionContext, DWORD cbIO, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose)
@@ -300,6 +288,15 @@ void WINAPI functorWebSocket::WritAsyncCompletion(HRESULT hrError, PVOID pvCompl
 	}
 
 	MyWebSocket* pws = (MyWebSocket*)pvCompletionContext;
+	//std::shared_ptr<MyWebSocket> pws(reinterpret_cast<MyWebSocket*>(pvCompletionContext));
+
+	if (pws == nullptr)
+		return;
+	else if (pws->remote.connectionId == 0) {
+		strLog << __FUNCTION__ << " Disconected websocket[" << pws->remote.port << "]";
+		p_log->write(&strLog);
+		return;
+	}
 
 	DWORD writeLength = 1024;
 	OutputDebugString((char *)pws->writeBuffer);

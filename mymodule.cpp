@@ -199,13 +199,14 @@ try
 				USHORT statusLength = 0;
 				
 				strLog << __FUNCTION__ << "WEBSOCKET ESTABLISHED " << ++g_websocketsCount;
-				p_log->write(&strLog);
+				p_log->write(&strLog, true);
 
+				//std::shared_ptr<MyWebSocket> websocket = std::make_shared<MyWebSocket>(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
 				MyWebSocket websocket(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
 				websocket.Reading();
 								
 				strLog << __FUNCTION__ << "WEBSOCKET RELEASED " << --g_websocketsCount;
-				p_log->write(&strLog);
+				p_log->write(&strLog, true);
 
 				//ULONG count = 1;
 				//while (true)

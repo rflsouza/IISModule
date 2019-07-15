@@ -7,6 +7,7 @@
 #include "iiswebsocket.h"
 #include "libwshandshake.hpp"
 
+using Mutex = std::mutex; //std::mutex recursive_mutex
 
 class MyWebSocket : public IHttpStoredContext
 {
@@ -26,7 +27,7 @@ public:
 		std::string user;
 	} remote;
 
-	std::mutex mtx;
+	Mutex mtx;
 
 	/*
 	IIS variable
@@ -42,16 +43,26 @@ public:
 	DWORD readBufferLength;
 	void * writeBuffer;
 
-
 	std::string data;
 
 	//Constructor
 	MyWebSocket() = delete;
 	MyWebSocket(CLog *log, IHttpServer *is, IHttpContext *ic, IWebSocketContext *wsc) : p_log(log), m_HttpServer(is), m_HttpContext(ic), m_WebSocketContext(wsc)
-	{		
+	{
+		OStringstream strLog;
+		strLog << __FUNCTION__ << " "<< this;
+		p_log->write(&strLog);
 		readBuffer = ic->AllocateRequestMemory(BUFFERLENGTH);
 		writeBuffer = ic->AllocateRequestMemory(BUFFERLENGTH);		
 	};
+
+	~MyWebSocket() {
+		OStringstream strLog;
+		strLog << __FUNCTION__ << " " << this << " websocket[" << remote.port << "]  closed, connectionId: " << remote.connectionId;
+		p_log->write(&strLog);
+
+		if (m_WebSocketContext) m_WebSocketContext->CancelOutstandingIO();
+	}
 
 	//move operator
 //	WebSocket& operator=(WebSocket&&);
@@ -59,8 +70,16 @@ public:
 	//deleter
 	void CleanupStoredContext()
 	{
+		OStringstream strLog;
+		strLog << __FUNCTION__ << " " << this << " websocket[" << remote.port << "]  closed, connectionId: " << remote.connectionId;
+		if (p_log) p_log->write(&strLog);
+
+		remote.connectionId = 0;
+
 		m_HttpServer = nullptr;
 		m_HttpContext = nullptr;
+		if (m_WebSocketContext) m_WebSocketContext->CancelOutstandingIO();
+		m_WebSocketContext = nullptr;
 		delete this;
 	};
 

@@ -14,18 +14,37 @@
 #include <windows.h>
 #include <tchar.h>
 
+#if defined(UNICODE) || defined(_UNICODE)
+	typedef std::wstring String;
+	#define to_String std::to_wstring
+	#define Serror _wcserror 
+	#define Cerr std::wcerr
+	#define Cout std::wcout
+	#define OStringstream std::wostringstream
+	#define Ofstream std::wofstream
+#else
+	typedef std::string String;	
+	#define Serror strerror 
+	#define Cerr std::cerr
+	#define Cout std::cout
+	#define OStringstream std::ostringstream
+	#define to_String std::to_string
+	#define Ofstream std::ofstream
+#endif
+
+
 class CLog
 {
 private:
-	std::unique_ptr<std::ofstream> ofs;
+	std::unique_ptr<Ofstream> ofs;
 	std::mutex mutex_;
 
-	std::string m_pathFile;
-	std::queue<std::string> listFiles;
+	String m_pathFile;
+	std::queue<String> listFiles;
 
 	std::atomic<int> flushCount;
 
-	char strDate[64];
+	TCHAR strDate[64];
 	SYSTEMTIME SysTime;
 
 	void createFile();
@@ -36,11 +55,11 @@ public:
 	pathFile = path of file, sample: C:\\applogs\\proxy-webhook\\
 	prefixFile = prefix of File name, sample: proxy
 	*/
-	CLog(std::string pathFile, std::string prefixFile);
+	CLog(String pathFile, String prefixFile);
 	~CLog();
-	void write(const char*, bool forceWrite = false);
-	void write(const std::string&, bool forceWrite = false);
-	void write(std::ostringstream *, bool forceWrite = false);
+	void write(const TCHAR*, bool forceWrite = false);
+	void write(const String&, bool forceWrite = false);
+	void write(OStringstream *, bool forceWrite = false);
 };
 
 #endif // _XWC_CLog_H_

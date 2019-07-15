@@ -39,6 +39,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>
+    </CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -104,10 +106,12 @@
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>c:\Windows\System32\inetsrv\appcmd.exe stop apppool "IIS-module"</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>c:\Windows\System32\inetsrv\appcmd.exe start apppool "IIS-module"</Command>
+      <Command>c:\Windows\System32\inetsrv\appcmd.exe stop apppool "IIS-module"
+c:\Windows\System32\inetsrv\appcmd.exe start apppool "IIS-module"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -130,6 +134,10 @@
       <ModuleDefinitionFile>mymodule.def</ModuleDefinitionFile>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>c:\Windows\System32\inetsrv\appcmd.exe stop apppool "IIS-module"
+c:\Windows\System32\inetsrv\appcmd.exe start apppool "IIS-module"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CLog.cpp">
