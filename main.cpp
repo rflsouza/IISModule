@@ -2,6 +2,7 @@
 
 
 /*
+Modules IIS
 https://github.com/NeusoftSecurity/SEnginx
 
 https://docs.microsoft.com/en-us/iis/develop/runtime-extensibility/develop-a-native-cc-module-for-iis
@@ -10,12 +11,19 @@ https://docs.microsoft.com/en-us/iis/web-development-reference/native-code-devel
 https://docs.microsoft.com/en-us/iis/web-development-reference/native-code-development-overview/comparing-native-code-and-managed-code-notifications
 
 
+Configurations
 
 Performance Tuning to IIS webSocket 
 https://github.com/SignalR/SignalR/wiki/Performance
 
+http://smallvoid.com/article/winnt-tcpip-max-limit.html
+
  client version of IIS, which is on Windows CLIENT(DESKTOP) 8/10, does have a concurrent connection request limitation (10)
 https://weblogs.asp.net/owscott/windows-8-iis-8-concurrent-requests-limit
+
+IIS 256 threads limitation (PoolThreadLimit)
+https://forums.iis.net/t/1191619.aspx
+https://support.microsoft.com/pt-br/help/954864/description-of-the-registry-keys-that-are-used-by-iis-7-0-iis-7-5-and
 */
 
 /*
@@ -53,7 +61,7 @@ BOOL WINAPI DllMain(
 		strLog << "SetPriority: HIGH NORMAL" << gAppPath;
 		p_log->write(&strLog);
 
-		if (!SetPriorityClass(GetCurrentProcess(), /*ABOVE_NORMAL_PRIORITY_CLASS*/ HIGH_PRIORITY_CLASS)) {
+		if (!SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS /*HIGH_PRIORITY_CLASS*/)) {
 			strLog << ErrorHandler("SetPriority");
 				p_log->write(&strLog, true);
 		}

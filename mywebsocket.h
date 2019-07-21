@@ -50,6 +50,7 @@ public:
 	MyWebSocket() = delete;
 	MyWebSocket(CLog *log, IHttpServer *is, IHttpContext *ic, IWebSocketContext *wsc) : p_log(log), m_HttpServer(is), m_HttpContext(ic), m_WebSocketContext(wsc)
 	{
+		g_IISCounter.websockets++;
 		OStringstream strLog;
 		strLog << __FUNCTION__ << " "<< this;
 		p_log->write(&strLog);
@@ -60,9 +61,7 @@ public:
 	~MyWebSocket() {
 		OStringstream strLog;
 		strLog << __FUNCTION__ << " " << this << " websocket[" << remote.port << "]  closed, connectionId: " << remote.connectionId;
-		p_log->write(&strLog);
-
-		if (m_WebSocketContext) m_WebSocketContext->CancelOutstandingIO();
+		p_log->write(&strLog);		
 	}
 
 	//move operator
@@ -71,6 +70,7 @@ public:
 	//deleter
 	void CleanupStoredContext()
 	{
+		g_IISCounter.websockets--;
 		OStringstream strLog;
 		strLog << __FUNCTION__ << " " << this << " websocket[" << remote.port << "]  closed, connectionId: " << remote.connectionId;
 		if (p_log) p_log->write(&strLog);
@@ -78,20 +78,33 @@ public:
 		remote.connectionId = 0;
 
 		m_HttpServer = nullptr;
+
+		if (m_WebSocketContext) {
+			m_HttpContext->IndicateCompletion(RQ_NOTIFICATION_FINISH_REQUEST);
+		}
 		m_HttpContext = nullptr;
-		if (m_WebSocketContext) m_WebSocketContext->CancelOutstandingIO();
+
+		if (m_WebSocketContext) {
+			m_WebSocketContext->CancelOutstandingIO();
+			m_WebSocketContext->CloseTcpConnection();
+		}
 		m_WebSocketContext = nullptr;
+
 		delete this;
 	};
 
 	void Reading();
 	HRESULT Write(std::string data);
+
+	void continuousReading();
 };
 
 namespace functorWebSocket {
 	//State Machine Async Function
 	void WINAPI ReadAsyncCompletion(HRESULT hrError, VOID * pvCompletionContext, DWORD cbIO, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose);
 	void WINAPI WritAsyncCompletion(HRESULT hrError, PVOID pvCompletionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose);
+
+	void WINAPI ContinuousReadAsyncCompletion(HRESULT hrError, VOID * pvCompletionContext, DWORD cbIO, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose);
 
 	//Supplementaly
 	void WINAPI fWebSocketNULL(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose);

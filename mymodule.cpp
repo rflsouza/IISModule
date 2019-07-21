@@ -99,7 +99,7 @@ try
 	strLog << __FUNCTION__;
 	p_log->write(&strLog);
 
-	g_requestsCount++;
+	g_IISCounter.requests++;
 
 	DWORD tick;
 	HRESULT hr = S_OK;
@@ -232,73 +232,68 @@ try
 				LPCWSTR statusBuffer = NULL;
 				USHORT statusLength = 0;
 				
-				strLog << __FUNCTION__ << " WEBSOCKET ESTABLISHED COUNT:" << ++g_websocketsCount;
-				p_log->write(&strLog, true);
+				//strLog << __FUNCTION__ << " WEBSOCKET ESTABLISHED COUNT:" << ++g_IISCounter.websockets;
+				//p_log->write(&strLog, true);
 
 				tick = GetTickCount();
 				strLog << _T("Start Create MyWebSocket [") << tick << _T("]");
 				p_log->write(&strLog);
 
 				//std::shared_ptr<MyWebSocket> websocket = std::make_shared<MyWebSocket>(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
-				MyWebSocket websocket(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
+				//MyWebSocket websocket(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
+				MyWebSocket* websocket = new MyWebSocket(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
+								
 
 				strLog << _T("End Start Create MyWebSocket [") << tick << _T("] duration:" << GetTickCount() - tick);
 				p_log->write(&strLog);
 
-				websocket.Reading();
+				//websocket.Reading();				
+				websocket->continuousReading();
+				strLog << _T("OnBeginRequest ->thread WebSOCKET. Return RQ_NOTIFICATION_PENDING. Count:" << g_IISCounter.websockets);
+				p_log->write(&strLog);
+				return RQ_NOTIFICATION_PENDING;
 								
-				strLog << __FUNCTION__ << "WEBSOCKET RELEASED COUNT:" << --g_websocketsCount;
-				p_log->write(&strLog, true);
 
-				//ULONG count = 1;
-				//while (true)
-				//{
-				//	// https://www.iana.org/assignments/websocket/websocket.xml#close-code-number-rules
-				//	//https://tools.ietf.org/html/rfc6455
-				//	hr = pWebSocketContext->GetCloseStatus(&statusSocket, &statusBuffer, &statusLength);
-				//	if (hr == NULL || statusSocket == -1) 
-				//	{
-				//		strLog << __FUNCTION__ << "websockets closed, Status:" << statusBuffer << " ret:" << hr << hr;
-				//		p_log->write(&strLog);
-
-				//		break;
-				//	}
-
-				//	void * readBuffer = pHttpContext->AllocateRequestMemory(1024);
-				//	DWORD readLength = 1024;					
-				//	BOOL bUTF8Encoded = FALSE;
-				//	BOOL bFinalFragment = TRUE;
-				//	BOOL bConnectionClose = FALSE;
-				//	BOOL success = FALSE;
-				//	hr = pWebSocketContext->ReadFragment(readBuffer, &readLength, TRUE, &bUTF8Encoded, &bFinalFragment, &bConnectionClose, &WEBSOCKET_COMPLETION, readBuffer, &success);
-				//	if (FAILED(hr)) {
-
-				//	}
-				//	if (success == TRUE)
-				//	{
-				//		strLog << __FUNCTION__ << "ready socket: lenght:" << readLength << " text:" << (char *)readBuffer;
-				//		p_log->write(&strLog);
-				//	}
-
-				//	void * writeBuffer = pHttpContext->AllocateRequestMemory(1024);
-				//	std::string text("number " + std::to_string(count++));
-				//	strcpy((char*)writeBuffer, text.c_str());
-				//	DWORD writeLength = strlen((char*)writeBuffer);
-
-				//	hr = pWebSocketContext->WriteFragment(writeBuffer, &writeLength, TRUE, FALSE, TRUE, &WEBSOCKET_COMPLETION, NULL, NULL);
-				//	if (FAILED(hr)) {
-
-				//	}
-
-				//	::Sleep(2000);
-				//}
-
+				//strLog << __FUNCTION__ << "WEBSOCKET RELEASED COUNT:" << --g_IISCounter.websockets;
+				//p_log->write(&strLog, true);
+				
 				break;
 			}
 			case WEB_REQUEST_GET:
-			{
-				
+			{				
+				IHttpResponse *pHttpResponse = pHttpContext->GetResponse();
+		
+				pHttpResponse->SetHeader("Content-Type", "text/html", strlen("text/html"), true);
 
+				std::ostringstream counters;
+				strLog << _T("OnBeginRequest GET requests");
+				p_log->write(&strLog);
+				counters << "<p><b>request:</b>" << g_IISCounter.requests.load(std::memory_order_consume) << "<\p>";
+				strLog << _T("OnBeginRequest GET websockets");
+				p_log->write(&strLog);
+				counters << "<p><b>websockets:</b>" << g_IISCounter.websockets.load(std::memory_order_consume) << "<\p>";
+				strLog << _T("OnBeginRequest GET websocketsRead");
+				p_log->write(&strLog);
+				counters << "<p><b>websockets Read:</b>" << g_IISCounter.websocketsRead.load(std::memory_order_consume) << "<\p>";
+				strLog << _T("OnBeginRequest GET websocketsWrite");
+				p_log->write(&strLog);
+				counters << "<p><b>websockets Write:</b>" << g_IISCounter.websocketsWrite.load(std::memory_order_consume) << "<\p>";
+				strLog << _T("OnBeginRequest GET WriteResponse");
+				p_log->write(&strLog);			
+				HRESULT hr = IISHelpers::WriteResponse(pHttpContext, counters.str());
+				if (hr == S_OK)
+				{
+					strLog << _T("OnBeginRequest GET WriteResponse hr") << hr;
+					p_log->write(&strLog);
+				}
+				else
+				{
+					strLog << _T("OnBeginRequest GET WriteResponse ERROR hr") << hr;
+					p_log->write(&strLog);
+					return RQ_NOTIFICATION_CONTINUE;
+				}
+
+				return RQ_NOTIFICATION_FINISH_REQUEST;
 
 				break;
 			}

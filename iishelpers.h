@@ -17,6 +17,7 @@
 #include <map>
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
+#include <atomic>
 
 enum EHTTPSamples
 {
@@ -27,6 +28,18 @@ enum EHTTPSamples
 	WEB_REQUEST_ASYNC_THREAD = 4
 
 } EHTTPSamples;
+
+struct IISCounter {
+	std::atomic_ullong requests;
+	std::atomic_ullong websockets;
+	std::atomic_ullong websocketsRead;
+	std::atomic_ullong websocketsWrite;
+	IISCounter() :
+		requests(ATOMIC_VAR_INIT(0)),
+		websockets(ATOMIC_VAR_INIT(0)),
+		websocketsRead(ATOMIC_VAR_INIT(0)),
+		websocketsWrite(ATOMIC_VAR_INIT(0)) {}
+};
 
 class IISHelpers
 {
@@ -62,7 +75,7 @@ public:
 	/*
 	* write data from the request.
 	* */
-	static bool WriteResponse(IHttpContext* pHttpContext, const std::string &content);
+	static HRESULT WriteResponse(IHttpContext* pHttpContext, const std::string &content);
 };
 
 

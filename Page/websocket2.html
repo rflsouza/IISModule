@@ -169,9 +169,17 @@
 
         function logElementToConsole(element) {
 
+            var spanDate = document.createElement('span');
+            spanDate.style.wordWrap = 'break-word';
+            spanDate.style.color = 'green';
+            var d = new Date();      
+            spanDate.innerHTML = '<strong>' + d.toLocaleTimeString() + '.' + d.getMilliseconds() + ':</strong> ';
+  
             var p = document.createElement('p');
             p.style.wordWrap = 'break-word';
             //    p.innerHTML = getSecureTag();
+
+            p.appendChild(spanDate);
             p.appendChild(element);
 
             consoleLog.appendChild(p);

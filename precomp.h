@@ -23,8 +23,7 @@ extern IISHelpers g_IISHelper;
 
 
 extern CLog *p_log;
-extern std::atomic<unsigned long> g_requestsCount;
-extern std::atomic<unsigned long> g_websocketsCount;
+extern IISCounter g_IISCounter;
 extern std::string gAppPath;
 
 #endif //__PRECOMP_H__

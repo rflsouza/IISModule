@@ -115,15 +115,13 @@ std::string IISHelpers::ConvertUTF16ToUTF8(const WCHAR * pszTextUTF16, size_t cc
 	return ret;
 }
 
-bool IISHelpers::WriteResponse(IHttpContext* pHttpContext, const std::string &content)
+HRESULT IISHelpers::WriteResponse(IHttpContext* pHttpContext, const std::string &content)
 {
-	bool status = true;
+	HRESULT hr = S_OK;
 
 	IHttpResponse* pHttpResponse = pHttpContext->GetResponse();
 	if (pHttpResponse != NULL)
-	{		
-		HRESULT hr = S_OK;
-			
+	{							
 		//we can manipulate the original data and change the content. We must get IIS-managed memory chunk
 		void *pBuffer = pHttpContext->AllocateRequestMemory(content.length());
 
@@ -136,17 +134,14 @@ bool IISHelpers::WriteResponse(IHttpContext* pHttpContext, const std::string &co
 		dataChunk.FromMemory.BufferLength = (ULONG)content.length();
 
 		hr = pHttpResponse->WriteEntityChunkByReference(&dataChunk, -1);
-		if (FAILED(hr))
-		{			
-			status = false;
-		}
+		return hr;
 	}
 	else
 	{
-		status = false;
+		hr = E_POINTER;
 	}	
 
-	return status;
+	return hr;
 }
 
 bool IISHelpers::GetVariable(IHttpContext * pHttpContext, PCSTR varName, PCSTR * pVarVal, DWORD * pVarValSize, BOOL isRequired)
