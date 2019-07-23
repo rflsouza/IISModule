@@ -107,12 +107,7 @@ try
 	IHttpResponse* pHttpResponse = pHttpContext->GetResponse();
 
 
-	std::map<std::string, int> urlmap;
-	urlmap["/websocket"] = EHTTPSamples::WEB_SOCKET;
-	urlmap["/get_test"] = EHTTPSamples::WEB_REQUEST_GET;
-	urlmap["/post_test"] = EHTTPSamples::WEB_REQUEST_POST_DATA;
-	urlmap["/post_file"] = EHTTPSamples::WEB_REQUEST_POST_FILE;
-	urlmap["/post_async"] = EHTTPSamples::WEB_REQUEST_ASYNC_THREAD;
+
 
 	HTTP_REQUEST * httpRequest = pHttpRequest->GetRawHttpRequest();		
 	std::string v_forwardURL = httpRequest->pRawUrl;	
@@ -131,9 +126,9 @@ try
 	strLog << __FUNCTION__ << "Command: " << v_forwardURL;
 	p_log->write(&strLog);
 
-	if (urlmap.find(v_forwardURL) != urlmap.end())
+	if (g_IISHelper.urlmap.find(v_forwardURL) != g_IISHelper.urlmap.end())
 	{
-		switch (urlmap[v_forwardURL])
+		switch (g_IISHelper.urlmap[v_forwardURL])
 		{
 			case WEB_SOCKET:
 			{
@@ -241,8 +236,7 @@ try
 
 				//std::shared_ptr<MyWebSocket> websocket = std::make_shared<MyWebSocket>(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
 				//MyWebSocket websocket(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
-				MyWebSocket* websocket = new MyWebSocket(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);
-								
+				MyWebSocket* websocket = new MyWebSocket(p_log, g_pHttpServer, pHttpContext, pWebSocketContext);								
 
 				strLog << _T("End Start Create MyWebSocket [") << tick << _T("] duration:" << GetTickCount() - tick);
 				p_log->write(&strLog);

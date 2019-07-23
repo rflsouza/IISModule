@@ -11,3 +11,4 @@ IISHelpers g_IISHelper;
 CLog *p_log;
 IISCounter g_IISCounter;
 std::string gAppPath;
+std::map<HTTP_CONNECTION_ID, MyWebSocket*> g_ListWebSocket;

@@ -2,6 +2,50 @@
 #include "mywebsocket.h"
 
 
+MyWebSocket::MyWebSocket(CLog *log, IHttpServer *is, IHttpContext *ic, IWebSocketContext *wsc) : p_log(log), m_HttpServer(is), m_HttpContext(ic), m_WebSocketContext(wsc)
+{
+	g_IISCounter.websockets++;
+	OStringstream strLog;
+	strLog << __FUNCTION__ << " " << this;
+	p_log->write(&strLog);
+	readBuffer = ic->AllocateRequestMemory(BUFFERLENGTH);
+	writeBuffer = ic->AllocateRequestMemory(BUFFERLENGTH);
+};
+
+MyWebSocket::~MyWebSocket() {
+	OStringstream strLog;
+	strLog << __FUNCTION__ << " " << this << " websocket[" << remote.port << "]  closed, connectionId: " << remote.connectionId;
+	p_log->write(&strLog);
+};
+
+void MyWebSocket::CleanupStoredContext()
+{
+	g_IISCounter.websockets--;
+	OStringstream strLog;
+	strLog << __FUNCTION__ << " " << this << " websocket[" << remote.port << "]  closed, connectionId: " << remote.connectionId;
+	if (p_log) p_log->write(&strLog);
+
+	g_ListWebSocket.erase(remote.connectionId);
+
+	remote.connectionId = 0;
+
+	m_HttpServer = nullptr;
+
+	if (m_WebSocketContext) {
+		m_HttpContext->IndicateCompletion(RQ_NOTIFICATION_FINISH_REQUEST);
+	}
+	m_HttpContext = nullptr;
+
+	if (m_WebSocketContext) {
+		m_WebSocketContext->CancelOutstandingIO();
+		m_WebSocketContext->CloseTcpConnection();
+	}
+	m_WebSocketContext = nullptr;
+
+	delete this;
+};
+
+
 void MyWebSocket::Reading()
 {
 	std::ostringstream strLog;
@@ -237,6 +281,13 @@ void MyWebSocket::continuousReading()
 
 	strLog << __FUNCTION__ << " ESTABLISHED connectionId: " << remote.connectionId << " REMOTE_ADDR: " << remote.addr << " REMOTE_HOST: " << remote.host << " REMOTE_PORT: " << remote.port << " REMOTE_USER: " << remote.user << " User-Agent: " << remote.userAgent;
 	p_log->write(&strLog);
+
+	g_ListWebSocket.insert(std::pair<HTTP_CONNECTION_ID, MyWebSocket*>(remote.connectionId, this));
+
+	for (auto const& websocket : g_ListWebSocket) {
+		std::string enter("ID[" + std::to_string(websocket.first) + "] o socket " + std::to_string(remote.connectionId)  + " se conectou");
+		websocket.second->Write(enter);
+	}
 
 	ULONG count = 0;
 

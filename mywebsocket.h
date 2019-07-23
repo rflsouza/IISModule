@@ -48,50 +48,14 @@ public:
 
 	//Constructor
 	MyWebSocket() = delete;
-	MyWebSocket(CLog *log, IHttpServer *is, IHttpContext *ic, IWebSocketContext *wsc) : p_log(log), m_HttpServer(is), m_HttpContext(ic), m_WebSocketContext(wsc)
-	{
-		g_IISCounter.websockets++;
-		OStringstream strLog;
-		strLog << __FUNCTION__ << " "<< this;
-		p_log->write(&strLog);
-		readBuffer = ic->AllocateRequestMemory(BUFFERLENGTH);
-		writeBuffer = ic->AllocateRequestMemory(BUFFERLENGTH);		
-	};
-
-	~MyWebSocket() {
-		OStringstream strLog;
-		strLog << __FUNCTION__ << " " << this << " websocket[" << remote.port << "]  closed, connectionId: " << remote.connectionId;
-		p_log->write(&strLog);		
-	}
+	MyWebSocket(CLog *log, IHttpServer *is, IHttpContext *ic, IWebSocketContext *wsc);
+	~MyWebSocket();
 
 	//move operator
 //	WebSocket& operator=(WebSocket&&);
 
 	//deleter
-	void CleanupStoredContext()
-	{
-		g_IISCounter.websockets--;
-		OStringstream strLog;
-		strLog << __FUNCTION__ << " " << this << " websocket[" << remote.port << "]  closed, connectionId: " << remote.connectionId;
-		if (p_log) p_log->write(&strLog);
-
-		remote.connectionId = 0;
-
-		m_HttpServer = nullptr;
-
-		if (m_WebSocketContext) {
-			m_HttpContext->IndicateCompletion(RQ_NOTIFICATION_FINISH_REQUEST);
-		}
-		m_HttpContext = nullptr;
-
-		if (m_WebSocketContext) {
-			m_WebSocketContext->CancelOutstandingIO();
-			m_WebSocketContext->CloseTcpConnection();
-		}
-		m_WebSocketContext = nullptr;
-
-		delete this;
-	};
+	void CleanupStoredContext();
 
 	void Reading();
 	HRESULT Write(std::string data);

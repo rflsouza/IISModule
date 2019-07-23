@@ -51,6 +51,8 @@ public:
 	IISHelpers();
 	~IISHelpers();
 
+	std::map<std::string, int> urlmap;
+
 	/*
 	 * This is the function invoked by RegisterModule
 	 * when the agent module DLL is loaded at startup.

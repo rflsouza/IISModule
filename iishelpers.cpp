@@ -4,10 +4,16 @@
 
 IISHelpers::IISHelpers()
 {
+	urlmap["/websocket"] = EHTTPSamples::WEB_SOCKET;
+	urlmap["/get_test"] = EHTTPSamples::WEB_REQUEST_GET;
+	urlmap["/post_test"] = EHTTPSamples::WEB_REQUEST_POST_DATA;
+	urlmap["/post_file"] = EHTTPSamples::WEB_REQUEST_POST_FILE;
+	urlmap["/post_async"] = EHTTPSamples::WEB_REQUEST_ASYNC_THREAD;
 }
 
 IISHelpers::~IISHelpers()
 {
+	urlmap.clear();
 }
 
 BOOL IISHelpers::RegisterIIHelpersModule()

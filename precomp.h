@@ -13,6 +13,7 @@
 #include "mymodulefactory.h"
 #include "iishelpers.h"
 #include "CLog.h"
+#include "mywebsocket.h"
 
 //  Global server instance
 extern IHttpServer * g_pHttpServer;
@@ -25,6 +26,7 @@ extern IISHelpers g_IISHelper;
 extern CLog *p_log;
 extern IISCounter g_IISCounter;
 extern std::string gAppPath;
+extern std::map<HTTP_CONNECTION_ID, MyWebSocket*> g_ListWebSocket;
 
 #endif //__PRECOMP_H__
 
