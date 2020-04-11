@@ -24,6 +24,7 @@ https://weblogs.asp.net/owscott/windows-8-iis-8-concurrent-requests-limit
 IIS 256 threads limitation (PoolThreadLimit)
 https://forums.iis.net/t/1191619.aspx
 https://support.microsoft.com/pt-br/help/954864/description-of-the-registry-keys-that-are-used-by-iis-7-0-iis-7-5-and
+https://blogs.iis.net/ksingla/list-of-registry-keys-affecting-iis7-behavior
 */
 
 /*
